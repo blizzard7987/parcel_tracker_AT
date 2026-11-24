@@ -1,9 +1,8 @@
 {
-  "name": "Paket Tracker",
+  "name": "Paket Tracker AT",
   "homeassistant": "2025.10.0",
   "render_readme": true,
-  "zip_release": true,
-  "filename": "parcel_tracker.zip",
+  "zip_release": false,
   "country": [
     "DE",
     "AT",
