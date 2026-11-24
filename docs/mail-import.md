@@ -31,7 +31,7 @@ Dein Hauptpostfach sieht die Integration so nie.
     | **Ordner** | Standard `INBOX` (der Posteingang). Der eine Ordner, den der Import liest. Für das eigene Paket-Postfach bleibt `INBOX` stehen. Ein leeres Feld behält den gespeicherten Ordner. Siehe [Eigener Ordner](#eigener-ordner). |
     | **Verarbeitete Mails in Ordner verschieben** | Standard: an. |
     | **Erkannte Mails löschen nach (Tagen)** | 0–365, Standard: 0 (aus). Löscht alte Mails im Ordner `Paket-Tracker-Verarbeitet`, siehe [Erkannte Mails löschen](#erkannte-mails-loschen). |
-    | **Postfach abfragen alle (Minuten)** | 1–1440 (bis zu einmal am Tag), Standard: 5. |
+    | **Postfach abfragen alle (Minuten; 22–6 höchstens stündlich)** | 1–1440 (bis zu einmal am Tag), Standard: 5. Zwischen 22 und 6 Uhr höchstens einmal pro Stunde; um 6 Uhr wird sofort wieder abgefragt. |
 
     Die Schalter für [Zustell-Codes](datenschutz.md#zustell-codes) und [Absendernamen aus DHL-Mails](datenschutz.md#absendernamen-aus-dhl-mails-ubernehmen) stehen im Bereich **Datenschutz**: Sie gelten für jede Mail, nicht nur für die aus dem Postfach.
 

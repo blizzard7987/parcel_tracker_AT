@@ -96,7 +96,7 @@ Diese Funktionen sind fertig, aber im Alltag noch von niemandem oder nur von ein
 | **Geschenkmodus: wer darf ausschalten** | Kann mit der Option „Wer darf Geschenke sehen?“ nur eine gewählte Person den Modus ausschalten, auch mit `switch.toggle`, und ein Wandtablet mit eigenem Benutzer nicht? Klappt es per Automation? Neu seit v0.3.40. | im Forum |
 | **Geschenkmodus: Sprachassistent** | Lässt sich der Modus mit Assist, Alexa oder Google nicht schalten, solange du den Schalter nicht freigegeben hast? Taucht ein Geschenk-Name in einer Antwort auf? Neu seit v0.3.40. | im Forum |
 | **Storniert (Bestellung vom Shop abgebrochen)** | Steht eine von Amazon, eBay oder AliExpress stornierte Bestellung auf „Storniert“, ohne als zugestellt zu zählen? Neu seit v0.3.40 ([PR #23](https://github.com/SoerenKaiser99/parcel_tracker/pull/23)). | im Forum |
-| **Mail-Abfrage bis 1440 Minuten** | Nimmt die Option „Postfach abfragen alle (Minuten)“ jetzt Werte bis 1440 an, und holt der Import die Mails danach im neuen Abstand? Neu seit v0.3.40. | im Forum |
+| **Mail-Abfrage bis 1440 Minuten** | Nimmt die Option „Postfach abfragen alle (Minuten; 22–6 höchstens stündlich)“ jetzt Werte bis 1440 an, und holt der Import die Mails danach im neuen Abstand? Neu seit v0.3.40. | im Forum |
 | **Die [Rezepte](rezepte.md)** | Läuft ein Rezept bei dir so, wie es dasteht? Was musstest du ändern? | im Forum |
 
 ## 2. Beispielmails: Diese fehlen uns
