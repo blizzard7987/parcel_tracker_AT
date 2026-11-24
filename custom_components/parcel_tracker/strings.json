@@ -132,7 +132,7 @@
             "data_description": {
               "notify_enabled": "Switches itself on with the first target. Switching it off removes the chosen targets.",
               "notify_targets": "Notify entities (e.g. the Home Assistant app on your phone) and classic notify services such as Pushover, listed as “Dienst notify.…”. Without a target nothing is sent.",
-              "notify_events": "The status changes you are notified about."
+              "notify_events": "The events you are notified about."
             }
           },
           "gift": {
@@ -253,6 +253,7 @@
     "gift_remove_not_allowed": {"message": "Only someone who may see gifts can delete a gift."},
     "gift_rename_not_allowed": {"message": "Only someone who may see gifts can rename a gift."},
     "gift_owner_not_allowed": {"message": "Only someone who may see gifts can change who a gift belongs to."},
+    "gift_tracking_not_allowed": {"message": "Only someone who may see gifts can add a tracking number to a gift."},
     "gift_outgoing": {"message": "A sent parcel cannot be a gift."},
     "owner_unknown": {"message": "This person is not set up in Paket Tracker."},
     "gift_target": {"message": "Give either a tracking number or choose all open parcels."},
@@ -265,6 +266,12 @@
     "not_tracked": {"message": "This parcel isn't in the list."},
     "already_delivered": {"message": "This parcel is already delivered."},
     "cancelled": {"message": "This order was cancelled, nothing more is coming."},
+    "not_an_order": {"message": "Only a shop order (Amazon, eBay, AliExpress, Eventim) takes a tracking number."},
+    "has_tracking": {"message": "This order's tracking number came by mail or with a merged parcel and can't be changed."},
+    "no_carrier": {"message": "No carrier knows this number. Check it, or choose the carrier."},
+    "own_number": {"message": "This is the order's own number, not the carrier's."},
+    "not_a_carrier_parcel": {"message": "This number belongs to another order or a sent parcel."},
+    "other_owner": {"message": "This number belongs to a parcel of another person."},
     "track17_off": {"message": "No 17track API key set. Add one in the Parcel Tracker options."},
     "track17_carrier": {"message": "17track couldn't recognise the carrier of this number."},
     "track17_quota": {"message": "Your 17track quota is used up."},
@@ -279,6 +286,7 @@
       "in_transit": "Parcel is in transit",
       "at_delivery_depot": "Parcel is at the delivery depot",
       "out_for_delivery": "Parcel is out for delivery",
+      "arriving_soon": "Parcel is arriving soon",
       "awaiting_pickup": "Parcel is ready for pickup",
       "delivered": "Parcel was delivered",
       "exception": "Problem with a parcel",
@@ -337,6 +345,7 @@
         "in_transit": "In transit",
         "at_delivery_depot": "At delivery depot",
         "out_for_delivery": "Out for delivery",
+        "arriving_soon": "Arriving soon",
         "awaiting_pickup": "Ready for pickup",
         "delivered": "Delivered",
         "exception": "Problem",
@@ -372,6 +381,15 @@
       "name": "Mark as received",
       "description": "Mark a parcel as received by hand: it counts as delivered from now on and stays so. For orders without a delivery mail and parcels whose \"delivered\" never arrives.",
       "fields": {"number": {"name": "Tracking number", "description": "Parcel that has arrived."}}
+    },
+    "set_tracking_number": {
+      "name": "Add tracking number",
+      "description": "Give a shop order the carrier's tracking number (DHL, DPD …). A number not tracked yet is asked about from now on and can be changed until a mail names it; a parcel tracked under it is merged into the order.",
+      "fields": {
+        "number": {"name": "Order", "description": "Number of the order (as in the attribute number)."},
+        "tracking_number": {"name": "Tracking number", "description": "The carrier's tracking number. Empty: takes a number typed in away again."},
+        "carrier": {"name": "Carrier", "description": "auto, dhl, dpd, gls, hermes, hes (Hermes Einrichtungs Service) or ups."}
+      }
     },
     "refresh": {
       "name": "Refresh",

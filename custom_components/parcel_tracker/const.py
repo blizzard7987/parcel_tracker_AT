@@ -115,27 +115,43 @@ CARRIER_BROKEN_AFTER = timedelta(hours=24)
 EVENT_STATUS_CHANGED = "parcel_tracker_status_changed"
 # A parcel is new in the store (mail, service, card); never for loading or merging.
 EVENT_PARCEL_ADDED = "parcel_tracker_parcel_added"
+# The carrier says the parcel comes within minutes (DHL "wird gleich zugestellt"); no
+# status change, the parcel stays "out for delivery". Once a day per parcel.
+EVENT_ARRIVING_SOON = "parcel_tracker_arriving_soon"
 # Status changes found while Home Assistant starts are announced once it has started,
 # but never later than this after the first refresh (a start can hang for minutes).
 ANNOUNCE_MAX_WAIT = timedelta(seconds=120)
 # Events a push notification can announce (in the order the options show them, the
 # steps of the card's bar first) and the ones ticked by default. Mostly a status; the
 # status "pre_transit" is two events: "ordered" for a shop's order, "announced" for a
-# carrier's parcel (see ``notification.notify_event``).
+# carrier's parcel (see ``notification.notify_event``). "arriving_soon" is no status: the
+# moment a parcel out for delivery is minutes away (``EVENT_ARRIVING_SOON``).
 NOTIFY_EVENTS = (
     "ordered",
     "announced",
     "in_transit",
     "at_delivery_depot",
     "out_for_delivery",
+    "arriving_soon",
     "awaiting_pickup",
     "delivered",
     "exception",
     "cancelled",
 )
-# "Ready for pickup" asks the recipient to act, "cancelled" tells that nothing comes:
-# both on from the start, like the last steps of a delivery. The early steps come often.
-DEFAULT_NOTIFY_EVENTS = ("out_for_delivery", "awaiting_pickup", "delivered", "cancelled")
+# "Ready for pickup" asks the recipient to act, "cancelled" tells that nothing comes,
+# "arriving soon" is the moment to go to the door: on from the start, like the last steps
+# of a delivery. The early steps come often.
+DEFAULT_NOTIFY_EVENTS = (
+    "out_for_delivery",
+    "arriving_soon",
+    "awaiting_pickup",
+    "delivered",
+    "cancelled",
+)
+# The default up to v0.3.63, before "cancelled" and "arriving_soon" were added to it:
+# stored once for an entry that has targets but never saved its choice
+# (``async_migrate_entry``), so that a new default event is not switched on unasked.
+LEGACY_NOTIFY_EVENTS = ("out_for_delivery", "awaiting_pickup", "delivered")
 # A stored notify target is either the ID of a notify entity ("notify.tablet") or,
 # with this prefix, the name of a classic notify service ("service:pushover" is the
 # service notify.pushover). No entity ID contains a colon, so the two never collide.
@@ -185,6 +201,12 @@ ORDER_NO_ETA_DAYS = 14
 # that comes a week before the window is somebody else's.
 FOLD_DAYS_BEFORE = 3
 FOLD_DAYS_AFTER = 3
+# A carrier's mail finds a shop order (mail.apply._merge_candidate) only if its day lies
+# in the order's day or window - for a shipped Amazon order also up to CARRIER_DAYS_EARLY
+# days before it or CARRIER_DAYS_LATE days after it: Amazon's day is a cautious estimate,
+# the carrier knows the real one and is often a day or two earlier, now and then later.
+CARRIER_DAYS_EARLY = 2
+CARRIER_DAYS_LATE = 1
 # A carrier mail that makes a parcel which is delivered right away is announced if it
 # names a shop or a company - but only if the mail is no older than this: a mail read
 # late tells nothing that came just now.

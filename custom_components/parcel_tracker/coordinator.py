@@ -6,7 +6,7 @@ import asyncio
 import email
 import logging
 from collections import deque
-from collections.abc import Collection, Sequence
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from email import policy
@@ -79,6 +79,7 @@ from .const import (
     DHL_DAILY_SOFT_LIMIT,
     DHL_FALLBACK_TRIES,
     DOMAIN,
+    EVENT_ARRIVING_SOON,
     EVENT_PARCEL_ADDED,
     EVENT_STATUS_CHANGED,
     FOLDER_PROCESSED,
@@ -114,9 +115,12 @@ from .mail.apply import (
     cancelled_part,
     close_unconfirmed,
     fold_delivered,
+    link_tracking,
     mark_received,
     order_of,
+    own_number,
     tells_newer,
+    unlink_tracking,
 )
 from .mail.base import MailResult, MailUpdate, is_forwarded, sender, sent_at
 from .mail.imap import (
@@ -147,6 +151,7 @@ from .models import (
 )
 from .notification import (
     build_notification,
+    build_soon_notification,
     notification_tag,
     notify_event,
     service_name,
@@ -235,6 +240,15 @@ def _first_news(parcel: Parcel) -> bool:
         None,
         ParcelStatus.UNKNOWN,
         ParcelStatus.DELIVERED,
+    )
+
+
+def _soon_holds(parcel: Parcel) -> bool:
+    """Does a "Kommt gleich" still hold: in delivery, within the window of the mail?"""
+    return (
+        parcel.status is ParcelStatus.OUT_FOR_DELIVERY
+        and parcel.soon_until is not None
+        and parcel.soon_until > dt_util.utcnow()
     )
 
 
@@ -337,11 +351,24 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         # status pushes it.
         # (carrier, number of the box, owner told) -> the status pushed for it.
         self._box_told: dict[tuple[str | None, str, tuple[str, ...]], ParcelStatus] = {}
+        # The status the event of a box told last, whether a push went out or not (see
+        # ``_announce``): a further order in it marks its event as ``repeat``, so the
+        # blueprint and the device triggers, which know no owners, tell the box once.
+        # (carrier, number of the box) -> the status. Memory only, like ``_box_told``.
+        self._box_fired: dict[tuple[str | None, str], ParcelStatus] = {}
         # Shop orders without a carrier number whose change is told by their box already
         # (``Change.told``: an Amazon order that came along in another order's box): the
         # status not to push for it, until its change is announced. Memory only, like
         # ``_box_told``.
         self._told_along: dict[str, ParcelStatus] = {}
+        # Parcels whose "Kommt gleich" came before announcing started (see
+        # ``_arriving_soon``): told then, if their window still runs. Memory only: the
+        # window is minutes long, after a restart it is over.
+        self._soon_waiting: set[str] = set()
+        # Parcels whose "Kommt gleich" is told right after their change to "in delivery"
+        # (the same mail, or both waited for the start): one push, the closer one (see
+        # ``_notify``). Only set while those are announced.
+        self._soon_now: set[str] = set()
 
     # ----- settings -----
     @property
@@ -718,6 +745,11 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             return
         self._announcing = True
         cleared = False
+        self._soon_now = {
+            number
+            for number in self._soon_waiting
+            if (parcel := self.store.parcels.get(number)) is not None and _soon_holds(parcel)
+        }
         for parcel in list(self.store.parcels.values()):
             old = parcel.unannounced_from
             if old is None:
@@ -729,6 +761,11 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 self._told_along.pop(parcel.number, None)
                 continue
             self._announce(parcel, old)
+        self._soon_now = set()
+        for number in sorted(self._soon_waiting):
+            if (parcel := self.store.parcels.get(number)) is not None:
+                self._announce_soon(parcel)
+        self._soon_waiting.clear()
         if cleared:
             self._unsaved_announced = True
             self.hass.async_create_task(
@@ -773,6 +810,7 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             self._box_told = {
                 box: s for box, s in self._box_told.items() if box[:2] in boxes
             }
+            self._box_fired = {box: s for box, s in self._box_fired.items() if box in boxes}
         today = dt_util.as_local(now).date()
         cleared = False
         for parcel in self.store.parcels.values():
@@ -1057,16 +1095,34 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             for update in result.updates:
                 if self._removed_lately(update):
                     continue
+                typed = {
+                    p.number: p.tracking_ref
+                    for p in self.store.parcels.values()
+                    if p.tracking_manual
+                }
                 change = apply_update(
                     self.store.parcels, update, now, self.gift_mode, item.owner
                 )
+                for number, ref in typed.items():
+                    order = self.store.parcels.get(number)
+                    if order is not None and order.tracking_ref != ref:
+                        # The shop's mail named another number (``_take_shop_facts``):
+                        # what the one typed in told is gone with it.
+                        self._forget_typed(order)
                 if change:
                     news = _news(change)
                     told_to = (self._audience(change.parcel), change.parcel.status)
                     # (only news: a change that tells nothing must leave no mark, or it
                     # would swallow the next push of that status)
                     change.told = change.told or (update.along and news and told_to in told)
-                    self._mail_changed(change)
+                    if change.soon:
+                        self._soon_now.add(change.parcel.number)
+                    try:
+                        self._mail_changed(change)
+                    finally:
+                        self._soon_now.clear()
+                    if change.soon:
+                        self._arriving_soon(change.parcel)
                     if news:
                         told.add(told_to)
         except Exception as err:  # noqa: BLE001 - one odd mail must not stop the import
@@ -1601,6 +1657,22 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 delivered_at=known.delivered_at,
             )
         if (
+            result.status is ParcelStatus.OUT_FOR_DELIVERY
+            and known is not None
+            and parcel.soon_until is not None
+            and known.eta_to == parcel.soon_until
+            and now < parcel.soon_until
+        ):
+            # The window of a "wird gleich zugestellt" (minutes from the mail on) is
+            # closer than any the carrier computes: it holds until it is over.
+            result = replace(
+                result,
+                eta_date=known.eta_date,
+                eta_latest=known.eta_latest,
+                eta_from=known.eta_from,
+                eta_to=known.eta_to,
+            )
+        elif (
             key in MAIL_ETA_CARRIERS
             and result.eta_date is None
             and known is not None
@@ -1821,6 +1893,31 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         if r.status is ParcelStatus.DELIVERED and not parcel.assumed_delivered:
             # Stored with the parcel (every caller saves afterwards): told for good.
             parcel.delivery_announced = True
+        # One box, several orders (they share a carrier number), or a carrier's parcel
+        # and the order that took it in: the event below is each entry's own, the
+        # notification is the box's. An order does not push a status that was pushed
+        # for its box already - to the same targets: orders of two persons in one box
+        # tell each person once, and two owners without targets of their own share
+        # the general targets' one push. Only a notification that really went out counts: an
+        # assumed closing or a hand mark of one order says nothing about the box.
+        # The event marks a status the box told already (``repeat``), pushed or not, so an
+        # automation can leave it out like the built-in push: the blueprint and the device
+        # triggers know no owners and tell a box once.
+        shared = parcel.tracking_ref is not None and parcel.carrier in SHOP_CARRIERS
+        try:
+            box = self._box_key(parcel)
+        except Exception:  # noqa: BLE001 - odd stored targets: the event still goes out
+            box = None  # (and no push: it could not find its targets either)
+        pushed = (
+            # (told by the order whose box it came along in, see ``_mail_changed``)
+            self._told_along.pop(parcel.number, None) is r.status
+            or (shared and box is not None and self._box_told.get(box) is r.status)
+        )
+        ref = (parcel.tracking_carrier, parcel.tracking_ref)
+        repeat = pushed or (shared and self._box_fired.get(ref) is r.status)
+        if shared and not (parcel.assumed_delivered or parcel.manual_delivered):
+            # (like the push: an assumed closing or a hand mark says nothing about the box)
+            self._box_fired[ref] = r.status
         self.hass.bus.async_fire(
             EVENT_STATUS_CHANGED,
             {
@@ -1851,20 +1948,11 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 "gift": parcel.gift,
                 # Sent by the user: the built-in push only tells its arrival.
                 "outgoing": parcel.outgoing,
+                # The parcel's box told this status already (see above).
+                "repeat": repeat,
             },
         )
-        # One box, several orders (they share a carrier number), or a carrier's parcel
-        # and the order that took it in: the event above is each entry's own, the
-        # notification is the box's. An order does not push a status that was pushed
-        # for its box already - to the same targets: orders of two persons in one box
-        # tell each person once, and two owners without targets of their own share
-        # the general targets' one push. Only a notification that really went out counts: an
-        # assumed closing or a hand mark of one order says nothing about the box.
-        shared = parcel.tracking_ref is not None and parcel.carrier in SHOP_CARRIERS
-        box = self._box_key(parcel)
-        if self._told_along.pop(parcel.number, None) is r.status:
-            pass  # told by the order whose box it came along in (``_mail_changed``)
-        elif not (shared and self._box_told.get(box) is r.status):
+        if not pushed and box is not None:
             if self._notify(parcel, old):
                 self._box_told[box] = r.status
             else:
@@ -1874,6 +1962,54 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         # (every caller saves afterwards).
         if parcel.outgoing and r.status in (ParcelStatus.DELIVERED, ParcelStatus.AWAITING_PICKUP):
             parcel.arrival_told = True
+
+    def _arriving_soon(self, parcel: Parcel) -> None:
+        """A mail said the parcel comes within minutes (``Change.soon``): tell it, or keep
+        it until announcing starts."""
+        if self._announcing:
+            self._announce_soon(parcel)
+        else:
+            self._soon_waiting.add(parcel.number)
+
+    def _announce_soon(self, parcel: Parcel) -> None:
+        """``parcel_tracker_arriving_soon`` and the push "Kommt gleich", while it holds.
+
+        No status change: the parcel stays "out for delivery", its window is the one of
+        the mail. Same fields as the status event, without the statuses. Nothing once the
+        window is over or the parcel moved on (delivered while Home Assistant started).
+        Never raises: the mail it came with is applied already.
+        """
+        if not _soon_holds(parcel):
+            return
+        try:
+            self._fire_soon(parcel, parcel.result)
+        except Exception as err:  # noqa: BLE001 - one parcel must not stop the import
+            # Only the error type: no parcel data in the log.
+            _LOGGER.warning("Could not announce an arriving parcel (%s)", type(err).__name__)
+
+    def _fire_soon(self, parcel: Parcel, r: TrackingResult) -> None:
+        self.hass.bus.async_fire(
+            EVENT_ARRIVING_SOON,
+            {
+                "entry_id": self.entry.entry_id,
+                "number": parcel.number,
+                "name": self.display_name(parcel),
+                "carrier": parcel.carrier,
+                "carrier_name": carrier_name(parcel),
+                "event": "arriving_soon",
+                "eta_from": r.eta_from.isoformat() if r.eta_from else None,
+                "eta_to": r.eta_to.isoformat() if r.eta_to else None,
+                "owner": self.effective_owner(parcel),
+                "gift": parcel.gift,
+                "outgoing": parcel.outgoing,
+            },
+        )
+        if not parcel.outgoing:
+            self._push(
+                parcel,
+                "arriving_soon",
+                lambda: build_soon_notification(parcel, dt_util.now(), self.hide_names),
+            )
 
     def _audience(self, parcel: Parcel) -> tuple[str, ...]:
         """The notify targets a push about this parcel goes to (its owner's or the general)."""
@@ -1912,14 +2048,35 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         neither delay nor break the refresh or the caller. An order closed without a
         delivery mail is never pushed (``build_notification`` gives no text for it).
         """
+        # A sent parcel only tells its arrival, chosen with "delivered" (see
+        # ``build_notification``).
+        event = "delivered" if parcel.outgoing else notify_event(parcel)
+        # "Kommt gleich" follows right away (``_soon_now``) and says more: one push, if
+        # that is chosen.
+        soon = event == "out_for_delivery" and parcel.number in self._soon_now
+        return self._push(
+            parcel,
+            event,
+            lambda: build_notification(parcel, old, dt_util.now(), self.hide_names),
+            instead="arriving_soon" if soon else None,
+        )
+
+    def _push(
+        self,
+        parcel: Parcel,
+        event: str | None,
+        build: Callable[[], tuple[str, str] | None],
+        instead: str | None = None,
+    ) -> bool:
+        """Push what ``build`` makes to the parcel's targets if ``event`` is chosen in the
+        options, and ``instead`` (an event pushed right after this one) is not; True if a
+        notification was built and handed to the sender."""
         try:
             targets = self.push_targets(parcel)
-            # A sent parcel only tells its arrival, chosen with "delivered" (see
-            # ``build_notification``).
-            event = "delivered" if parcel.outgoing else notify_event(parcel)
-            if not targets or event not in self._notify_events:
+            chosen = self._notify_events
+            if not targets or event not in chosen or instead in chosen:
                 return False
-            built = build_notification(parcel, old, dt_util.now(), self.hide_names)
+            built = build()
             tag = notification_tag(parcel.number)
         except Exception as err:  # noqa: BLE001 - a notification must never break a refresh
             # Only the error type: no parcel data in the log.
@@ -2439,6 +2596,20 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             return None
         return self._gls_other_form(parcel.number)
 
+    def _forget_typed(self, order: Parcel) -> None:
+        """Forget what was told about a number typed in that the order no longer has.
+
+        The order went back to its result from before (``unlink_tracking``): nothing the
+        wrong number told waits to be told, and the order's next change is measured
+        against what it has now, not against what was told about that number.
+        """
+        order.unannounced_from = None
+        if order.status is not ParcelStatus.DELIVERED:
+            order.delivery_announced = None
+        self._announced.pop(order.number, None)
+        self._told_along.pop(order.number, None)
+        self._untold_delivery.discard(order.number)
+
     def _gls_other_form(self, number: str) -> Parcel | None:
         """The GLS parcel stored under the other form (11 or 12 digits) of a GLS number."""
         short = gls_number(number)
@@ -2532,6 +2703,113 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             self._settle_orders(now)
             await self.store.async_save()
             self.async_set_updated_data(dict(self.store.parcels))
+
+    async def async_set_tracking(
+        self, number: str, tracking: str | None, carrier: str, user_id: str | None = None
+    ) -> Parcel:
+        """Give a shop order the carrier's number typed in ("Sendungsnummer eintragen").
+
+        See ``mail.apply.link_tracking``. KeyError for an order that is not tracked,
+        UnsupportedNumber for a number nobody can track (Amazon's own TBA…), ValueError
+        "unknown_carrier", "no_carrier" for a number no carrier's format fits with
+        "Automatisch" (a typo would be asked about for nothing) and the refusals of
+        ``link_tracking``. A gift order is changed only by someone who may see it. A
+        parcel of another person (both have an owner, ``effective_owner``) is refused
+        with "other_owner", and so is a gift parcel hidden from the user: the refusal
+        does not tell that a gift is there.
+
+        - A new number is asked about right away, as if the parcel was added (UPS without
+          its API as in ``async_add``: known as UPS, "missing_key"). What the carrier
+          answers is told like every answer (``_success``).
+        - A carrier's parcel tracked under it (a GLS one also under the other form of its
+          number) is folded into the order, and its sensor goes. Its news was told with the
+          parcel already, so the order tells nothing again (``fold_delivered`` the same): a
+          change still waiting to be told goes over to the order.
+        - No number (empty) takes one typed in away again (``unlink_tracking``); a number
+          typed in before is replaced the same way. The order goes back quietly: what the
+          wrong number told is not taken back with a notification.
+        """
+        if not (tracking or "").strip():
+            async with self._lock:
+                order = self.store.parcels[normalize(number)]  # KeyError: not tracked
+                self._guard_gift(order, user_id, "gift_tracking_not_allowed")
+                if order.carrier not in SHOP_CARRIERS:
+                    raise ValueError("not_an_order")
+                if order.tracking_ref is None:
+                    return order
+                unlink_tracking(order)
+                self._forget_typed(order)
+                now = dt_util.utcnow()
+                order.last_change_at = now
+                self._forget_idle_carriers()
+                self._settle_orders(now)
+                await self.store.async_save()
+                self.async_set_updated_data(dict(self.store.parcels))
+            return order
+        tracking_number = normalize(tracking)
+        keys = candidates(tracking_number, self.carriers)  # raises UnsupportedNumber
+        key = None if carrier == CARRIER_AUTO else carrier
+        if key is not None and key not in self.carriers and key not in OPTIONAL_API_CARRIERS:
+            raise ValueError("unknown_carrier")
+        if key is None and len(keys) == 1:
+            # (only one carrier knows the format: the order links to its page at once)
+            key = keys[0]
+        elif key is None and not keys and UpsCarrier.matches(tracking_number) is Match.SURE:
+            key = "ups"  # mail-only until UPS API credentials are configured
+        async with self._lock:  # not while a refresh or a mail works on the parcels
+            order = self.store.parcels[normalize(number)]  # KeyError: not tracked
+            self._guard_gift(order, user_id, "gift_tracking_not_allowed")
+            if tracking_number not in self.store.parcels and carrier in (CARRIER_AUTO, "gls"):
+                # (12 digits are also a DHL number: not when another carrier was chosen)
+                twin = self._gls_other_form(tracking_number)
+                tracking_number = twin.number if twin is not None else tracking_number
+            own = self.store.parcels.get(tracking_number)
+            if own is not None and not self._may_change_gift(own, user_id):
+                # A gift hidden from the user is not named, not even in the refusal: it is
+                # a parcel of somebody else, as the card sees it.
+                raise ValueError("other_owner")
+            owners = {self.effective_owner(p) for p in (own, order) if p is not None}
+            if own is not None and own is not order and None not in owners and len(owners) > 1:
+                # Another person's box (the card with ``person`` does not show it): two
+                # people's parcels are never joined. One for everybody (no owner) may be.
+                raise ValueError("other_owner")
+            if (
+                own is None
+                and key is None
+                and not keys
+                and tracking_number != order.tracking_ref
+                and not own_number(order, tracking_number)  # (that refusal says more)
+            ):
+                # No carrier knows the format, and no parcel is tracked under it: a typo.
+                raise ValueError("no_carrier")
+            typed = order.tracking_manual and order.tracking_ref != tracking_number
+            # (a number typed in before goes first: the order is back where it was then)
+            before = order.result_before_tracking if typed else order.result
+            old = before.status if before is not None else None
+            now = dt_util.utcnow()
+            folded = link_tracking(self.store.parcels, order, tracking_number, key, now)
+            if typed:
+                # (what was told about the number typed in before is gone with it)
+                self._forget_typed(order)
+            if folded is not None:
+                # As in ``fold_delivered``: what the parcel still had to tell goes over to
+                # the order; what it told already, the order does not tell again.
+                waiting = folded.unannounced_from is not None
+                order.unannounced_from = (order.unannounced_from or old) if waiting else None
+                if folded.delivery_announced:
+                    order.delivery_announced = True
+                self._announced.pop(folded.number, None)
+                self._told_along.pop(folded.number, None)
+                self._untold_delivery.discard(folded.number)
+                self._forget_idle_carriers()
+            elif self._pollable(order):
+                await self._poll_safely(order, now)
+            elif order.tracking_carrier in OPTIONAL_API_CARRIERS:
+                order.last_error = "missing_key"  # as for a UPS parcel added by hand
+            self._settle_orders(now)
+            await self.store.async_save()
+            self.async_set_updated_data(dict(self.store.parcels))
+        return order
 
     async def async_refresh_parcels(self, number: str | None) -> None:
         targets = [self.store.parcels[normalize(number)]] if number else self.store.parcels.values()
