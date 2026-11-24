@@ -21,7 +21,13 @@ INITIAL_DAYS = 14
 
 # Sender words: carriers, marketplaces and Austrian senders with shipping mails.
 SENDER_WORDS = (
-    "amazon",
+    # Amazon only with the senders the parser reads (not Prime, reviews, Spar-Abo, ...)
+    "bestellbestaetigung@amazon",
+    "versandbestaetigung@amazon",
+    "shipment-tracking@amazon",
+    "order-update@amazon",
+    "pickup-point@amazon",
+    "rueckgabe@amazon",
     "dhl",
     "dpd",
     "gls",
@@ -34,6 +40,15 @@ SENDER_WORDS = (
     "shopify",
     "aftership",
     "parcellab",
+    # Austrian shops (mail/at_shops.py)
+    "dm.at",
+    "shop-apotheke.at",
+    "apotheke.at",
+    "aboutyou.at",
+    "asambeauty.com",
+    "pharmeo.at",
+    "apol.at",
+    "exporto.at",
 )
 
 # Subject words of shipping mails (ASCII only: the search must not need a charset).

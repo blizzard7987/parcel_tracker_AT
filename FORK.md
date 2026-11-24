@@ -40,6 +40,11 @@ Einschalten unter Einstellungen → Geräte & Dienste → Paket Tracker → Konf
 - **Post-Nummern in jeder Mail:** Links zur Post-Sendungsverfolgung, Nummern hinter „Paket:“/„Sendungsnummer“ und internationale Nummern auf `…AT`.
 - **Shop-Mails** (`mail/at_shops.py`): dm, Shop Apotheke, apotheke.at, ABOUT YOU, asambeauty, Pharmeo, apol. Nummer (Post, DPD, DHL), Shopname als Paketname, Status aus dem Betreff. Retouren werden ignoriert.
 
+## Nachschärfen nach dem ersten Betrieb (E5)
+
+- **Amazon ohne Zustellmail:** Amazon schickt in Österreich keine Mail „Zugestellt“. Mit Land „Österreich“ gilt eine Amazon-Box, die „In Zustellung“ war, nach Ablauf ihres Tages als zugestellt (ohne Benachrichtigung, Text „Abgeschlossen ohne Zustellbestätigung“). Gezählt wird vom Tag der Mail, nicht vom Tag des Einlesens.
+- **Gmail-Suche enger:** Von Amazon nur die Absender, die der Parser liest (keine Prime-, Bewertungs- oder Spar-Abo-Mails), dazu die österreichischen Shops.
+
 ## Upstream einspielen
 
 ```

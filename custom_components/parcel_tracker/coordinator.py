@@ -51,6 +51,7 @@ from .const import (
     CARRIER_AUTO,
     CARRIER_BROKEN_AFTER,
     CARRIER_OTHER,
+    CONF_COUNTRY,
     CONF_DEFAULT_OWNER,
     CONF_DELETE_PROCESSED_DAYS,
     CONF_GIFT_VIEWERS,
@@ -783,6 +784,12 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 cleared = True
         return bool(removed) or cleared
 
+    @property
+    def _no_delivery_mail(self) -> bool:
+        """Paket Tracker AT: Amazon sends no "delivered" mail in Austria."""
+        country = self.entry.options.get(CONF_COUNTRY, self.entry.data.get(CONF_COUNTRY))
+        return str(country or "").lower() == "at"
+
     def _settle_orders(self, now: datetime) -> bool:
         """Close shop orders that get no "delivered" mail; True if something changed.
 
@@ -830,7 +837,9 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         today = dt_util.as_local(now).date()
         for parcel in self.store.parcels.values():
             zone = dt_util.get_default_time_zone()
-            if not order_overdue(parcel, today, zone, self._askable(parcel)):
+            if not order_overdue(
+                parcel, today, zone, self._askable(parcel), self._no_delivery_mail
+            ):
                 continue
             old = parcel.status
             close_unconfirmed(parcel, now)

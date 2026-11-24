@@ -84,7 +84,11 @@ _ORDER_FINAL = frozenset(
 
 
 def order_overdue(
-    parcel: Parcel, today: date, tz: tzinfo = BERLIN, askable: bool = True
+    parcel: Parcel,
+    today: date,
+    tz: tzinfo = BERLIN,
+    askable: bool = True,
+    no_delivery_mail: bool = False,
 ) -> bool:
     """Tell whether a shop order waits in vain for its "delivered" mail.
 
@@ -114,6 +118,18 @@ def order_overdue(
         return False
     changed = parcel.last_change_at.astimezone(tz).date()
     last = (result.eta_latest or result.eta_date) if result else None
+    if (
+        no_delivery_mail
+        and parcel.carrier == "amazon"
+        and result is not None
+        and result.status is ParcelStatus.OUT_FOR_DELIVERY
+    ):
+        # Paket Tracker AT: Amazon sends no "delivered" mail in Austria. A box that was out
+        # for delivery is taken as delivered once its day is over. The day is the one the
+        # mail named, else the day of the mail (not the day it was read: the stock-taking
+        # after a start reads two weeks of mails at once).
+        mailed = (parcel.last_mail_at or parcel.last_change_at).astimezone(tz).date()
+        return today > (last or mailed)
     if last is None:
         return (today - changed).days >= ORDER_NO_ETA_DAYS
     return (today - max(last, changed)).days > ORDER_OVERDUE_DAYS
