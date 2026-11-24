@@ -1,0 +1,47 @@
+From: Google Store <googlestore-noreply@google.com>
+To: max@example.com
+Subject: Deine Google Store-Bestellung (GS.0000-0000-0000) wurde zugestellt
+Date: Tue, 24 Nov 2026 16:06:31 +0000
+Message-ID: <321_google_store_zugestellt.eml@example>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============6489296643966222815=="
+
+--===============6489296643966222815==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Deine Bestellung ist versandbereit
+
+Lieferung: 27. Nov - 28. Nov
+
+Sendungsverfolgung: JVGL06009999000499999999
+
+--===============6489296643966222815==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html><html><body><div itemscope itemtype=3Dhttp://schema.org/Parcel=
+Delivery>
+<div itemprop=3DdeliveryAddress itemscope itemtype=3Dhttp://schema.org/Postal=
+Address><meta itemprop=3Dname content=3D"Max Muster"><meta itemprop=3DpostalC=
+ode content=3D1010></div>
+<div itemprop=3DitemShipped itemscope itemtype=3Dhttp://schema.org/Product><m=
+eta itemprop=3Dname content=3D"Google Fitbit Edge (Olive / Satin Pyrite)"></d=
+iv>
+<div itemprop=3Dcarrier itemscope itemtype=3Dhttp://schema.org/Organization><=
+meta itemprop=3Dname content=3DDHLN></div>
+<meta itemprop=3DtrackingNumber content=3DJVGL06009999000499999999>
+<link itemprop=3DtrackingUrl href=3Dhttps://store.google.com/track/JVGL060099=
+99000499999999>
+<div itemprop=3DpartOfOrder itemscope itemtype=3Dhttp://schema.org/Order><met=
+a itemprop=3DorderNumber content=3DGS.0000-0000-0000>
+<div itemprop=3Dmerchant itemscope itemtype=3Dhttp://schema.org/Organization>=
+<meta itemprop=3Dname content=3D"Google Commerce Ltd"></div>
+<link itemprop=3DorderStatus href=3Dhttp://schema.org/OrderDelivered></div>
+<meta itemprop=3DexpectedArrivalFrom content=3D2026-11-27T15:37:39Z><meta ite=
+mprop=3DexpectedArrivalUntil content=3D2026-11-28T15:37:39Z></div>
+<h4>Deine Bestellung ist versandbereit</h4></body></html>
+
+--===============6489296643966222815==--

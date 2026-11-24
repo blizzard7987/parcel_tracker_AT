@@ -1,0 +1,27 @@
+From: Shop <noreply@shop.example>
+To: max@example.com
+Subject: Ihr Paket ist unterwegs
+Date: Tue, 24 Nov 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2722424896832719577=="
+
+--===============2722424896832719577==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Ihr Paket ist unterwegs
+
+--===============2722424896832719577==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head><script type=3D"application/ld+json">{"@context":"http://schema.o=
+rg","@type":"ParcelDelivery","trackingNumber":"1099999999999998212399","carri=
+er":{"@type":"Organization","name":"=C3=96sterreichische Post"},"itemShipped"=
+:{"@type":"Product","name":"Wanderschuhe"},"partOfOrder":{"@type":"Order","or=
+derStatus":"http://schema.org/OrderInTransit"}}</script></head><body>x</body>=
+</html>
+
+--===============2722424896832719577==--
