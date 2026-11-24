@@ -1,21 +1,21 @@
 {
   "domain": "parcel_tracker",
-  "name": "Paket Tracker",
+  "name": "Paket Tracker AT",
   "after_dependencies": [
     "frontend",
     "lovelace"
   ],
   "codeowners": [
-    "@SoerenKaiser99"
+    "@blizzard7987"
   ],
   "config_flow": true,
   "dependencies": [
     "http"
   ],
-  "documentation": "https://soerenkaiser99.github.io/parcel_tracker/",
+  "documentation": "https://github.com/blizzard7987/parcel_tracker_AT#readme",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/SoerenKaiser99/parcel_tracker/issues",
+  "issue_tracker": "https://github.com/blizzard7987/parcel_tracker_AT/issues",
   "requirements": [],
   "version": "0.3.67"
 }

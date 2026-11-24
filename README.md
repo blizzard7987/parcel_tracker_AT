@@ -4,6 +4,8 @@
 
 **Ausführliche Anleitung mit Rezepten:** [soerenkaiser99.github.io/parcel_tracker](https://soerenkaiser99.github.io/parcel_tracker/) · **Alle Versionen:** [CHANGELOG](https://github.com/SoerenKaiser99/parcel_tracker/blob/main/CHANGELOG.md)
 
+> **Paket Tracker AT** ist ein Fork von [SoerenKaiser99/parcel_tracker](https://github.com/SoerenKaiser99/parcel_tracker) (MIT-Lizenz, Dank an Sören Kaiser) mit Schwerpunkt Österreich: Österreichische Post, DPD und GLS Österreich, österreichische Shops und ein Mail-Import, der das **Hauptpostfach nur liest** – ohne Weiterleitung, ohne Verschieben, ohne „gelesen“-Markierung. Stand und Plan: [FORK.md](https://github.com/blizzard7987/parcel_tracker_AT/blob/main/FORK.md). Installation: HACS → ⋮ → Benutzerdefinierte Repositories → `https://github.com/blizzard7987/parcel_tracker_AT` (Typ Integration). Nicht gleichzeitig mit dem Original installieren (gleiche Integrations-Kennung `parcel_tracker`).
+
 Home-Assistant-Integration, die Pakete von DHL, DPD, GLS, Hermes und (optional) UPS verfolgt, Amazon-, eBay- und AliExpress-Bestellungen sowie Eventim-Tickets mit Postversand aus E-Mails übernimmt und alles auf einer eigenen Dashboard-Karte zeigt.
 
 <p>
