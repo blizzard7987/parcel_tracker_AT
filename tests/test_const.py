@@ -20,6 +20,7 @@ def test_carrier_groups():
         "hes": "Hermes Einrichtungs Service",
         "post_at": "Österreichische Post",
         "ups": "UPS",
+        "fedex": "FedEx",
         "amazon": "Amazon",
         "ebay": "eBay",
         "aliexpress": "AliExpress",

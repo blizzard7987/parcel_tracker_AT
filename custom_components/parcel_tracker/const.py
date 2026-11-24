@@ -242,6 +242,8 @@ CARRIER_NAMES = {
     "hes": "Hermes Einrichtungs Service",
     "post_at": "Österreichische Post",
     "ups": "UPS",
+    # Paket Tracker AT: recognised in mails, no public live tracking
+    "fedex": "FedEx",
     "amazon": "Amazon",
     "ebay": "eBay",
     "aliexpress": "AliExpress",

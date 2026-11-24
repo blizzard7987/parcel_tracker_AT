@@ -54,3 +54,34 @@ def test_dhl_ecommerce_number_anywhere():
 def test_gmail_search_reads_the_text_of_any_sender():
     q = gmail_query()
     assert '"Sendungsnummer"' in q and '"Sendung verfolgen"' in q and '"tracking number"' in q
+
+
+def test_fedex_by_label_and_written_out_link():
+    text = (
+        "The parcel will be collected by the Courier Service Company FedEx on the 09.11.2026.\n"
+        "Tracking number: 384599999465.\n"
+        "https://www.fedex.com/fedextrack/?trknbr=384599999465\n"
+    )
+    [u] = parse_mail(_mail("<p>Shipping confirmation</p>", text)).updates
+    assert (u.number, u.carrier) == ("384599999465", "fedex")
+
+
+def test_exporto_post_number_in_a_dhl_link_is_post():
+    html = ('<p>Exporto Trackingnummer</p><a href="https://nolp.dhl.de/nextt-online-public/'
+            'set_identcodes.do?lang=de&idc=1048999999999999212302">1048999999999999212302</a>')
+    assert link_numbers([
+        "https://nolp.dhl.de/nextt-online-public/set_identcodes.do?lang=de&idc=1048999999999999212302"
+    ]) == [("post_at", "1048999999999999212302")]
+    [u] = parse_mail(_mail(html, "Deine Bestellung ist auf dem Weg")).updates
+    assert (u.number, u.carrier) == ("1048999999999999212302", "post_at")
+
+
+def test_apol_shopify_mail_with_exporto_label():
+    text = ("Deine Bestellung ist auf dem Weg\n\nExporto Trackingnummer: 1048999999999999212302\n"
+            "( https://nolp.dhl.de/nextt-online-public/set_identcodes.do?lang=de"
+            "&idc=1048999999999999212302 )")
+    m = _mail("<p>x</p>", text)
+    del m["From"]
+    m["From"] = "apol <info@mail-apol.de>"
+    [u] = parse_mail(m).updates
+    assert (u.number, u.carrier) == ("1048999999999999212302", "post_at")

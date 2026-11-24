@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import aiohttp
 
-from .base import Carrier
+from .base import Carrier, NoLiveTracking
 from .dhl import DhlCarrier
 from .dpd import DpdCarrier
 from .gls import GlsCarrier
@@ -28,4 +28,5 @@ def build_carriers(
         "gls": GlsCarrier(session, country),
         # Paket Tracker AT
         "post_at": PostAtCarrier(session),
+        "fedex": NoLiveTracking("fedex", "FedEx"),
     }

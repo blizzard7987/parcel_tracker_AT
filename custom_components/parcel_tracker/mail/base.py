@@ -379,6 +379,9 @@ _TRACKING_LINKS = (
     ("ups", re.compile(
         r"\bups\.com/[^\s\"'<>]*?(?:tracknum|InquiryNumber1|trackingNumber)="
         r"(1Z[0-9A-Z]{16})", re.IGNORECASE)),
+    ("fedex", re.compile(
+        r"\bfedex\.com/[^\s\"'<>]*?(?:trknbr|tracknumbers|trackingnumber)=(\d{12}|\d{15})(?!\d)",
+        re.IGNORECASE)),
     ("hermes", re.compile(
         r"\b(?:myhermes\.(?:de|at)|my-deliveries\.de)/[^\s\"'<>]*?"
         r"(?:trackingnummer/|sendungsnummer=|shipmentid=|tracking/)(H?\d{12,19})(?!\d)",
@@ -392,7 +395,12 @@ def link_numbers(links: list[str]) -> list[tuple[str, str]]:
     for link in links:
         for carrier, pattern in _TRACKING_LINKS:
             if (m := pattern.search(link)) and all(m.group(1).upper() != n for _, n in found):
-                found.append((carrier, m.group(1).upper()))
+                number = m.group(1).upper()
+                # Österreichische Post takes over parcels DHL hands on (Exporto, DHL Paket
+                # to Austria): their 22/24 digits are Post's even in a DHL link.
+                if carrier == "dhl" and number.isdigit() and len(number) in (22, 24):
+                    carrier = "post_at"
+                found.append((carrier, number))
     return found
 
 

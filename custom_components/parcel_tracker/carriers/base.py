@@ -92,3 +92,22 @@ class Carrier(ABC):
     @abstractmethod
     async def fetch(self, number: str, postcode: str | None) -> TrackingResult:
         """Fetch and normalise tracking data."""
+
+
+class NoLiveTracking(Carrier):
+    """Paket Tracker AT: a carrier the mails name but no public page answers (FedEx).
+
+    The parcel is shown with the status of its mails and the carrier's tracking link; the
+    lookup is "no key", quietly, never "carrier not found" or a repair issue.
+    """
+
+    def __init__(self, key: str, name: str) -> None:
+        self.key = key
+        self.name = name
+
+    @staticmethod
+    def matches(number: str) -> Match:
+        return Match.NO
+
+    async def fetch(self, number: str, postcode: str | None) -> TrackingResult:
+        raise MissingCredentials(f"{self.name}: no public tracking")
