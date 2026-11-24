@@ -89,14 +89,15 @@ def parse_dhl_nl(data: Any, number: str) -> TrackingResult:
         raise NotFound(number)
     scans.sort(key=lambda s: s[0], reverse=True)
     status = next((s for _, s, _ in scans if s is not None), ParcelStatus.UNKNOWN)
-    events = [
-        TrackingEvent(
-            timestamp=t,
-            text=_NL_TEXT.get(s or ParcelStatus.UNKNOWN) or plain_text(str(e.get("status") or "")),
-            location=None,
-        )
-        for t, s, e in scans
-    ][:MAX_EVENTS]
+    events: list[TrackingEvent] = []
+    for t, s, e in scans:
+        text = _NL_TEXT.get(s or ParcelStatus.UNKNOWN) or plain_text(str(e.get("status") or ""))
+        # DHL sends one step as leg and piece event a second apart: shown once
+        last = events[-1] if events else None
+        if last and last.text == text and abs((last.timestamp - t).total_seconds()) < 600:
+            continue
+        events.append(TrackingEvent(timestamp=t, text=text, location=None))
+    events = events[:MAX_EVENTS]
     frame = shipment.get("plannedDeliveryTimeframe") or {}
     start = _ts(frame.get("start")) if isinstance(frame, dict) else None
     end = _ts(frame.get("end")) if isinstance(frame, dict) else None

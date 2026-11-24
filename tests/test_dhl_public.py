@@ -36,7 +36,7 @@ def test_nl_announced():
     r = parse_dhl_nl(NL_ANNOUNCED, JVGL)
     assert r.status is ParcelStatus.PRE_TRANSIT
     assert r.status_text == "Sendungsdaten an DHL übermittelt"
-    assert len(r.events) == 2
+    assert len(r.events) == 1  # leg + piece event of one step
 
 
 def test_nl_delivered_and_out_for_delivery():
@@ -92,3 +92,15 @@ async def test_keyless_failure_stays_missing_key(session):
         m.get(f"{DHL_NL_URL}?key={JVGL}", status=503)
         with pytest.raises(MissingCredentials):
             await DhlCarrier(session, None).fetch(JVGL, None)
+
+
+def test_nl_same_step_twice_is_shown_once():
+    assert len(parse_dhl_nl(NL_ANNOUNCED, JVGL).events) == 1
+
+
+async def test_fedex_has_no_live_tracking_and_says_so_quietly(session):
+    from custom_components.parcel_tracker.carriers import build_carriers
+
+    fedex = build_carriers(session, None, "at")["fedex"]
+    with pytest.raises(MissingCredentials):
+        await fedex.fetch("384599999465", None)

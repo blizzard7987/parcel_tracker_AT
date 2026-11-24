@@ -678,6 +678,14 @@ def _galaxus_title(text: str) -> str:
     return title if title and len(title) <= _GALAXUS_ITEM_MAX else GALAXUS_NAME
 
 
+_URL_IN_TEXT = re.compile(r"https?://[^\s<>\"'\[\]()]+")
+_FEDEX_LABELLED = re.compile(
+    r"(?:tracking\s*(?:number|nummer|-nummer)|sendungsnummer|trackingnummer)\s*:?\s*"
+    r"(\d{12}|\d{15})(?!\d)",
+    re.IGNORECASE,
+)
+
+
 def parse_generic(msg: EmailMessage) -> list[MailUpdate]:
     """Any other mail: only numbers that are safe on their own.
 
@@ -717,7 +725,15 @@ def parse_generic(msg: EmailMessage) -> list[MailUpdate]:
                          subject(msg), re.IGNORECASE)
     links = [link for part in msg.walk() if part.get_content_maintype() == "text"
              for link in part_links(part)] if not (forwarded or outgoing) else []
+    # addresses written out as text count too ("…/fedextrack/?trknbr=…" as the link's text)
+    links += _URL_IN_TEXT.findall(text) if not (forwarded or outgoing) else []
     found += [(c, n) for c, n in link_numbers(links) if all(n != k for _, k in found)]
+    # FedEx names its number only behind a label; 12 digits alone say nothing.
+    if "fedex" in text.lower() and not (forwarded or outgoing):
+        found += [
+            ("fedex", m.group(1)) for m in _FEDEX_LABELLED.finditer(text)
+            if all(m.group(1) != k for _, k in found)
+        ]
     return [
         MailUpdate(number=number, carrier=carrier, status=None, sent_at=sent, title=title)
         for carrier, number in found

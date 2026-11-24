@@ -131,14 +131,14 @@ def test_the_shipment_id_is_url_encoded():
         # Amazon's page only for an Amazon order with a shipment id, named as Amazon names it.
         _parcel("AMZ9999156534258712", "amazon", shipment_ids=["TAbCdE9fG"]),
         _parcel("EBAY990000000001", "ebay", shipment_ids=["TAbCdE9fG"]),
-        _parcel("999999999901", "fedex", shipment_ids=["TAbCdE9fG"]),
+        _parcel("999999999901", "tnt", shipment_ids=["TAbCdE9fG"]),
         # 17track only, also when 17track recognised one of our carriers.
         _parcel("999999999901", "other"),
         _parcel("999999999901", "other", track17=True, track17_carrier=101070),
         # "Automatisch" that found no carrier yet.
         _parcel("999999999901", None),
         # Unknown carriers and no number.
-        _parcel("999999999901", "fedex"),
+        _parcel("999999999901", "tnt"),
         _parcel("", "dhl"),
     ],
 )

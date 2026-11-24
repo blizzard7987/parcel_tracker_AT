@@ -20,6 +20,10 @@ _PAGES: dict[str, str] = {
     "post_at": "https://www.post.at/s/sendungsdetails?snr={}",
     "ups": "https://www.ups.com/track?loc=de_DE&tracknum={}",
 }
+# Paket Tracker AT: carriers without live tracking here, linked all the same.
+_AT_PAGES: dict[str, str] = {
+    "fedex": "https://www.fedex.com/fedextrack/?trknbr={}",
+}
 # The form of a number a page knows the parcel by, where it differs from the stored one:
 # GLS finds a parcel by its 11 digits, without the check digit.
 _PAGE_NUMBER: dict[str, Callable[[str], str]] = {"gls": gls_number}
@@ -58,7 +62,7 @@ def _carrier_page(parcel: Parcel) -> str | None:
         carrier, number = parcel.tracking_carrier, parcel.tracking_ref
     else:
         carrier, number = parcel.carrier, parcel.number
-    page = _PAGES.get(carrier) if carrier else None
+    page = (_PAGES.get(carrier) or _AT_PAGES.get(carrier)) if carrier else None
     if page is None or not number:
         return None
     number = _PAGE_NUMBER.get(carrier, str)(number)
