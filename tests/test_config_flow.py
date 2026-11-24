@@ -17,6 +17,7 @@ from custom_components.parcel_tracker.const import (
     CONF_KEEP_DELIVERED_DAYS,
     CONF_MAIL_ENABLED,
     CONF_MAIL_INTERVAL,
+    CONF_MAIL_READ_ONLY,
     CONF_MAIL_SECTION,
     CONF_MOVE_PROCESSED,
     CONF_PLAIN_NAMES,
@@ -374,6 +375,23 @@ async def test_options_mail_login_ok_stores_password_in_data(hass):
     assert CONF_IMAP_PASSWORD not in entry.options
     assert entry.options[CONF_IMAP_USER] == "pakete@example.org"
     assert entry.options[CONF_MOVE_PROCESSED] is False
+
+
+async def test_options_mail_read_only_is_stored(hass):
+    """Paket Tracker AT: the main mailbox is only read, the switch is kept."""
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_POSTCODE: "1230"})
+    entry.add_to_hass(hass)
+    result = await open_options(hass, entry)
+    mail = result["data_schema"].schema[CONF_MAIL_SECTION].schema.schema
+    assert CONF_MAIL_READ_ONLY in mail
+    with patch(CHECK_LOGIN), patch(SETUP, return_value=True):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            _mail_input(imap_user="f@gmail.com", imap_password="pw", mail_read_only=True),
+        )
+        await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_MAIL_READ_ONLY] is True
 
 
 async def test_privacy_switches_are_set_without_the_mail_import(hass):

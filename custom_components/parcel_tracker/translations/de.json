@@ -88,6 +88,7 @@
               "imap_user": "Benutzername",
               "imap_password": "Passwort",
               "imap_folder": "Ordner",
+              "mail_read_only": "Hauptpostfach nur lesen (nichts markieren oder verschieben)",
               "move_processed": "Verarbeitete Mails in Ordner verschieben",
               "delete_processed_days": "Erkannte Mails löschen nach (Tagen)",
               "mail_interval": "Postfach abfragen alle (Minuten)"
@@ -99,6 +100,7 @@
               "imap_user": "Leer lassen behält den gespeicherten Benutzernamen.",
               "imap_password": "Leer lassen behält das gespeicherte Passwort.",
               "imap_folder": "Welcher Ordner des Postfachs gelesen wird – nur dieser eine. Lass „INBOX“ für das eigene Paket-Postfach stehen. Ein Ordner deines Hauptpostfachs geht auch, dann kennt Home Assistant aber das Passwort des ganzen Postfachs. Leer lassen behält den gespeicherten Ordner.",
+              "mail_read_only": "Für das normale Postfach ohne Weiterleitung: Der Ordner wird nur gelesen, keine Mail wird als gelesen markiert, verschoben oder gelöscht. Gelesen werden nur Versandmails der letzten Tage (Suche auf dem Server; bei Gmail mit der Gmail-Suche). Verschieben und Löschen sind dann aus.",
               "move_processed": "Ordner Paket-Tracker-Verarbeitet und Paket-Tracker-Nicht-erkannt.",
               "delete_processed_days": "Löscht Mails im Ordner Paket-Tracker-Verarbeitet endgültig, sobald sie so viele Tage alt sind (Eingangsdatum), höchstens einmal am Tag. Nur dieser Ordner, nie der gelesene und nie Paket-Tracker-Nicht-erkannt. Wirkt nur mit „Verarbeitete Mails in Ordner verschieben“. 0 = aus."
             }

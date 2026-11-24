@@ -57,6 +57,7 @@ from .const import (
     CONF_HIDE_NAMES,
     CONF_KEEP_DELIVERED_DAYS,
     CONF_MAIL_INTERVAL,
+    CONF_MAIL_READ_ONLY,
     CONF_MOVE_PROCESSED,
     CONF_NOTIFY_EVENTS,
     CONF_NOTIFY_TARGETS,
@@ -68,6 +69,7 @@ from .const import (
     DEFAULT_HIDE_NAMES,
     DEFAULT_KEEP_DELIVERED_DAYS,
     DEFAULT_MAIL_INTERVAL,
+    DEFAULT_MAIL_READ_ONLY,
     DEFAULT_MOVE_PROCESSED,
     DEFAULT_NOTIFY_EVENTS,
     DEFAULT_OWNER,
@@ -534,8 +536,13 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
 
     @property
     def _purge_enabled(self) -> bool:
-        """Deleting only ever happens in the folder mails are moved into."""
-        return self._move_processed and self._delete_processed_days > 0
+        """Deleting only ever happens in the folder mails are moved into; never while the
+        main mailbox is only read (Paket Tracker AT)."""
+        return (
+            self._move_processed
+            and self._delete_processed_days > 0
+            and not self.entry.options.get(CONF_MAIL_READ_ONLY, DEFAULT_MAIL_READ_ONLY)
+        )
 
     @property
     def _mail_interval(self) -> timedelta:

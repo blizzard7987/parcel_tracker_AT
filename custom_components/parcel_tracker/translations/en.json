@@ -88,6 +88,7 @@
               "imap_user": "Username",
               "imap_password": "Password",
               "imap_folder": "Folder",
+              "mail_read_only": "Only read the main mailbox (mark or move nothing)",
               "move_processed": "Move processed mails to folders",
               "delete_processed_days": "Delete recognised mails after (days)",
               "mail_interval": "Check mailbox every (minutes)"
@@ -99,6 +100,7 @@
               "imap_user": "Leave empty to keep the saved username.",
               "imap_password": "Leave empty to keep the saved password.",
               "imap_folder": "The folder of the mailbox that is read – only this one. Keep \"INBOX\" for a dedicated parcel mailbox. A folder of your main mailbox works too, but then Home Assistant knows the password of that whole mailbox. Leave empty to keep the stored folder.",
+              "mail_read_only": "For your normal mailbox without forwarding: the folder is only read, no mail is marked as read, moved or deleted. Only shipping mails of the last days are read (search on the server; on Gmail with the Gmail search). Moving and deleting are then off.",
               "move_processed": "Folders Paket-Tracker-Verarbeitet and Paket-Tracker-Nicht-erkannt.",
               "delete_processed_days": "Permanently deletes mails in the folder Paket-Tracker-Verarbeitet once they are this many days old (arrival date), at most once a day. Only this folder, never the folder read and never Paket-Tracker-Nicht-erkannt. Works only with “Move processed mails to folders”. 0 = off."
             }

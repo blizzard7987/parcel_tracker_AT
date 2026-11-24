@@ -38,10 +38,12 @@ from .const import (
     CONF_IMAP_PORT,
     CONF_IMAP_SECURITY,
     CONF_IMAP_USER,
+    CONF_MAIL_READ_ONLY,
     CONF_TRACK17_API_KEY,
     CONF_UPS_BUDGET,
     CONF_UPS_CLIENT_ID,
     CONF_UPS_CLIENT_SECRET,
+    DEFAULT_MAIL_READ_ONLY,
     DEFAULT_UPS_BUDGET,
     DOMAIN,
     IMAP_SECURITY_SSL,
@@ -117,6 +119,7 @@ def _mailbox(entry: ConfigEntry) -> MailboxClient | None:
         folder=entry.options.get(CONF_IMAP_FOLDER),
         port=entry.options.get(CONF_IMAP_PORT),
         security=security,
+        read_only=bool(entry.options.get(CONF_MAIL_READ_ONLY, DEFAULT_MAIL_READ_ONLY)),
     )
 
 

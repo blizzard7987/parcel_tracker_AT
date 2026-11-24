@@ -13,10 +13,19 @@ Fork von [SoerenKaiser99/parcel_tracker](https://github.com/SoerenKaiser99/parce
 | Etappe | Inhalt | Stand |
 |---|---|---|
 | E0 | Fork-Identität: Name „Paket Tracker AT“, HACS-Installation direkt aus dem Repository (ohne Release-ZIP), Hinweise auf das Original | erledigt |
-| E1 | Mail-Import „Hauptpostfach, nur lesen“: Ordner lesend öffnen, nichts markieren, nichts verschieben; Auswahl über Gmail-Suche bzw. Datum und Absender | offen |
+| E1 | Mail-Import „Hauptpostfach, nur lesen“: Ordner lesend öffnen, nichts markieren, nichts verschieben; Auswahl über Gmail-Suche bzw. Datum und Absender | erledigt |
 | E2 | Österreichische Post: Live-Abfrage per Sendungsnummer, Post-Mails, Amazon-Pakete über die Post zuordnen | offen |
 | E3 | DPD Österreich live, österreichische Shop-Mails | offen |
 | E4 | Optional: Gmail per OAuth statt App-Passwort | offen |
+
+## Hauptpostfach nur lesen (E1)
+
+Einschalten unter Einstellungen → Geräte & Dienste → Paket Tracker → Konfigurieren → E-Mail-Import → „Hauptpostfach nur lesen“.
+
+- Der Ordner wird mit EXAMINE geöffnet, Mails werden mit BODY.PEEK gelesen: nichts wird als gelesen markiert, verschoben, gelöscht oder angelegt. Das automatische Löschen ist in diesem Modus aus.
+- Gelesen werden nur mögliche Versandmails der letzten 3 Tage. Bei Gmail sucht der Server selbst (`X-GM-RAW`, ohne Gesendet), bei anderen Servern über Datum plus Absender- und Betreff-Wörter (`mail/readonly.py`).
+- Bereits gelesene Mails merkt sich die Integration bis zum Neustart (je UIDVALIDITY). Nach einem Neustart werden die Mails der letzten 3 Tage noch einmal abgerufen, aber nicht erneut verarbeitet: Die Message-IDs verarbeiteter Mails speichert die Integration dauerhaft.
+- Für Gmail: IMAP-Server `imap.gmail.com`, Benutzer ist die Gmail-Adresse, Passwort ein App-Passwort.
 
 ## Upstream einspielen
 
