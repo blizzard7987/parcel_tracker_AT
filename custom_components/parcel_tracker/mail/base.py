@@ -134,6 +134,8 @@ class MailResult:
 _NUMBERS = (
     ("dhl", re.compile(r"\b(00340\d{15})\b")),
     ("dhl", re.compile(r"\b(JJD\d{12,22})\b")),
+    # Paket Tracker AT: DHL eCommerce Europe / DHL Parcel NL (Google Store "DHLN")
+    ("dhl", re.compile(r"\b(JVGL\d{16,24})\b")),
     ("ups", re.compile(r"\b(1Z[0-9A-Z]{16})\b")),
     ("hermes", re.compile(r"\b(H\d{19})\b")),
 )
@@ -357,6 +359,41 @@ _CARRIER_WORDS = (
     ("gls", "gls"),
     ("ups", "ups"),
 )
+
+
+# Paket Tracker AT: a carrier's own tracking link names carrier and number at once, in
+# any shop's mail ("Sendung verfolgen" buttons). Only the carriers' own domains count.
+_TRACKING_LINKS = (
+    ("dhl", re.compile(
+        r"\bdhl\.(?:de|com|at)/[^\s\"'<>]*?(?:piececode|tracking-id|trackingnumber|idc)="
+        r"([A-Z0-9]{10,35})(?![A-Z0-9])", re.IGNORECASE)),
+    ("dhl", re.compile(
+        r"\bdhlparcel\.(?:nl|be)/[^\s\"'<>]*?([A-Z0-9]{3,6}\d{10,26})(?![A-Z0-9])",
+        re.IGNORECASE)),
+    ("dpd", re.compile(
+        r"\b(?:my)?dpd\.(?:de|at|com)/[^\s\"'<>]*?(?:parcelno=|parcelnumber=|query=|parcel/)"
+        r"(\d{14})(?!\d)", re.IGNORECASE)),
+    ("gls", re.compile(
+        r"\bgls-group\.(?:eu|com)/[^\s\"'<>]*?(?:match=|track/|parcelno=)(\d{11})\d?(?!\d)",
+        re.IGNORECASE)),
+    ("ups", re.compile(
+        r"\bups\.com/[^\s\"'<>]*?(?:tracknum|InquiryNumber1|trackingNumber)="
+        r"(1Z[0-9A-Z]{16})", re.IGNORECASE)),
+    ("hermes", re.compile(
+        r"\b(?:myhermes\.(?:de|at)|my-deliveries\.de)/[^\s\"'<>]*?"
+        r"(?:trackingnummer/|sendungsnummer=|shipmentid=|tracking/)(H?\d{12,19})(?!\d)",
+        re.IGNORECASE)),
+)
+
+
+def link_numbers(links: list[str]) -> list[tuple[str, str]]:
+    """(carrier, number) of carriers' tracking links, first occurrence first."""
+    found: list[tuple[str, str]] = []
+    for link in links:
+        for carrier, pattern in _TRACKING_LINKS:
+            if (m := pattern.search(link)) and all(m.group(1).upper() != n for _, n in found):
+                found.append((carrier, m.group(1).upper()))
+    return found
 
 
 def carrier_key(text: str) -> str | None:

@@ -19,7 +19,9 @@ from .base import (
     html_body_text,
     html_text,
     is_forwarded,
+    link_numbers,
     names_carrier,
+    part_links,
     sender,
     sent_at,
     shop_of,
@@ -706,7 +708,17 @@ def parse_generic(msg: EmailMessage) -> list[MailUpdate]:
     title = company_name(display) if named and display else None
     if _is_galaxus(domain) and not forwarded:
         title = _galaxus_title(text)
+    found = find_numbers(text, dpd)
+    # Paket Tracker AT: the "Sendung verfolgen" link of a carrier names carrier and number
+    # in any shop's mail, also where the text names neither.
+    # A return's or a sent parcel's mail ("Retoure", "Rücksendung", "Paketschein") is no
+    # parcel that comes: its links are not read.
+    outgoing = re.search(r"retour|rücksend|ruecksend|return|paketschein|versandlabel",
+                         subject(msg), re.IGNORECASE)
+    links = [link for part in msg.walk() if part.get_content_maintype() == "text"
+             for link in part_links(part)] if not (forwarded or outgoing) else []
+    found += [(c, n) for c, n in link_numbers(links) if all(n != k for _, k in found)]
     return [
         MailUpdate(number=number, carrier=carrier, status=None, sent_at=sent, title=title)
-        for carrier, number in find_numbers(text, dpd)
+        for carrier, number in found
     ]

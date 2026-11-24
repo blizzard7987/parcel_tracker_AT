@@ -72,6 +72,21 @@ SUBJECT_WORDS = (
     "versandbereit",
 )
 
+# Paket Tracker AT: words in the text of a shipping mail of any shop (Gmail searches
+# subject and body): the mail is read whoever sent it, the parsers decide what it is.
+BODY_WORDS = (
+    "Sendungsnummer",
+    "Sendungsverfolgung",
+    "Trackingnummer",
+    "Tracking-Nummer",
+    "Paketnummer",
+    "Sendung verfolgen",
+    "Paket verfolgen",
+    "Lieferung verfolgen",
+    "tracking number",
+    "track your",
+)
+
 GMAIL_CAPABILITY = "X-GM-EXT-1"
 
 
@@ -79,7 +94,8 @@ def gmail_query(days: int = READ_ONLY_DAYS) -> str:
     """The Gmail search for shipping mails of the last ``days`` days (not sent ones)."""
     senders = " OR ".join(f"from:{w}" for w in SENDER_WORDS)
     subjects = " OR ".join(f"subject:{w}" for w in SUBJECT_WORDS)
-    return f"newer_than:{days}d -in:sent ({senders} OR {subjects})"
+    body = " OR ".join(f'"{w}"' for w in BODY_WORDS)
+    return f"newer_than:{days}d -in:sent ({senders} OR {subjects} OR {body})"
 
 
 # RFC 3501 month names; strftime("%b") would follow the system locale.
