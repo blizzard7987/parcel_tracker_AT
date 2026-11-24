@@ -163,6 +163,10 @@ async def fetch_dpd_at(number: str) -> TrackingResult:
                     raise CarrierUnavailable("DPD AT answered no JSON (bot protection?)") from err
     except (TimeoutError, aiohttp.ClientError) as err:
         raise CarrierUnavailable(str(err)) from err
+    if isinstance(body, dict) and body.get("state") == "failure" and not body.get("data"):
+        # A well-formed answer without the parcel: DPD Austria does not know the number
+        # (seen live 2026-11-24 for a parcel of Österreichische Post with 14 digits).
+        raise NotFound(number)
     if not isinstance(body, dict) or body.get("state") != "success":
         raise CarrierUnavailable("DPD AT refused the search")
     data = body.get("data")

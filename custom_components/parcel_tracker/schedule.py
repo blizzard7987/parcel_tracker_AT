@@ -117,6 +117,10 @@ def order_overdue(
     ):
         return False
     changed = parcel.last_change_at.astimezone(tz).date()
+    if no_delivery_mail and parcel.last_mail_at is not None:
+        # Paket Tracker AT: the stock-taking after a start reads two weeks of mails at once,
+        # so the day of the change is the day the mail came, not the day it was read.
+        changed = min(changed, parcel.last_mail_at.astimezone(tz).date())
     last = (result.eta_latest or result.eta_date) if result else None
     if (
         no_delivery_mail

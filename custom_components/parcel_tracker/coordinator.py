@@ -1392,6 +1392,8 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             else:
                 self._success(parcel, now, key, result)
                 return
+        if await self._post_at_instead(parcel, now, number, keys, tried):
+            return
         if deferred is not None:
             key, err = deferred
             if isinstance(err, RateLimited):
@@ -1409,6 +1411,36 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             parcel.first_error_at = None
         parcel.last_error = last_error
         parcel.next_poll_at = now + timedelta(hours=1)
+
+    async def _post_at_instead(
+        self, parcel: Parcel, now: datetime, number: str, keys: list[str], tried: list[str]
+    ) -> bool:
+        """Paket Tracker AT: a 14-digit number DPD does not know may be Post's.
+
+        Austrian shops (apotheke.at) name "Sendungsnummer: 6231…" without a carrier, and
+        14 digits are taken for DPD. Österreichische Post ships parcels with such numbers
+        too (seen 2026-11-24). When DPD failed to answer for it, Post is asked once per
+        poll; a hit makes the parcel a Post parcel for good. True if Post knew it.
+        """
+        post = self.carriers.get("post_at")
+        if (
+            post is None
+            or not self._no_delivery_mail
+            or keys != ["dpd"]
+            or parcel.tracking_ref is not None
+            or len(number) != 14
+            or not number.isdigit()
+        ):
+            return False
+        tried.append("post_at")
+        try:
+            result = await post.fetch(number, self._postcode)
+        except Exception as err:  # noqa: BLE001 - Post's failure leaves DPD's outcome
+            _LOGGER.debug("post_at does not know %s either: %s", number, err)
+            return False
+        parcel.carrier = "post_at"
+        self._success(parcel, now, "post_at", result)
+        return True
 
     def _dhl_fallback(self, parcel: Parcel) -> bool:
         """Ask DHL about a number typed in with "Automatisch" that no carrier's rule takes?

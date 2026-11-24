@@ -37,3 +37,12 @@ def test_only_amazon_boxes_out_for_delivery():
         status=ParcelStatus.OUT_FOR_DELIVERY,
     )
     assert not order_overdue(ebay, TODAY, BERLIN, no_delivery_mail=True)
+
+
+def test_announced_item_counts_from_its_mail_after_the_stock_taking():
+    # Trolli: "Bestellt", day 14.11, read in the stock-taking on 24.11 (changed=NOW)
+    announced = _order(first=TODAY - timedelta(days=10), status=ParcelStatus.PRE_TRANSIT)
+    announced.last_mail_at = NOW - timedelta(days=13)
+    assert order_overdue(announced, TODAY, BERLIN, no_delivery_mail=True)
+    # without the Austrian rule the reading day counts, as upstream
+    assert not order_overdue(announced, TODAY, BERLIN)
