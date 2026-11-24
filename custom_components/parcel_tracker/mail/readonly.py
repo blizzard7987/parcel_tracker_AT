@@ -15,6 +15,9 @@ from datetime import date, timedelta
 # How far back the search looks. The original ignores mails older than 14 days anyway;
 # a short window keeps the fetch small on a busy mailbox.
 READ_ONLY_DAYS = 3
+# First search after a start (and after a new UIDVALIDITY): a stock-taking of everything
+# still on its way. Matches MAIL_MAX_AGE, older shipping mails are ignored anyway.
+INITIAL_DAYS = 14
 
 # Sender words: carriers, marketplaces and Austrian senders with shipping mails.
 SENDER_WORDS = (

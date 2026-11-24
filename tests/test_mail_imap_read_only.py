@@ -114,3 +114,29 @@ def test_purge_does_nothing_in_read_only_mode():
     client = _client(mails={"7": RAW})
     assert client.purge_processed(30, date(2026, 11, 24)) == 0
     assert FakeImap.instances == []
+
+
+def _search_days(fake):
+    search = next(c for c in fake.calls if c[:2] == ("uid", "SEARCH"))
+    return search[4]
+
+
+def test_first_search_takes_stock_of_two_weeks_then_three_days():
+    client = _client(mails={"7": RAW}, caps=("IMAP4REV1", GMAIL_CAPABILITY))
+    client.fetch_unseen()
+    assert "newer_than:14d" in _search_days(FakeImap.instances[0])
+    client.fetch_unseen()
+    assert "newer_than:3d" in _search_days(FakeImap.instances[1])
+
+
+def test_stock_taking_continues_while_over_the_fetch_limit(monkeypatch):
+    monkeypatch.setattr("custom_components.parcel_tracker.mail.imap.FETCH_LIMIT", 1)
+    client = _client(mails={"7": RAW, "9": RAW}, caps=("IMAP4REV1", GMAIL_CAPABILITY))
+    first = client.fetch_unseen()
+    client.finish([(uid, None) for uid, _ in first], move=False)
+    second = client.fetch_unseen()
+    assert "newer_than:14d" in _search_days(FakeImap.instances[1])
+    assert [u for u, _ in first + second] == ["7", "9"]
+    client.finish([(uid, None) for uid, _ in second], move=False)
+    client.fetch_unseen()
+    assert "newer_than:3d" in _search_days(FakeImap.instances[2])

@@ -23,8 +23,8 @@ Fork von [SoerenKaiser99/parcel_tracker](https://github.com/SoerenKaiser99/parce
 Einschalten unter Einstellungen → Geräte & Dienste → Paket Tracker → Konfigurieren → E-Mail-Import → „Hauptpostfach nur lesen“.
 
 - Der Ordner wird mit EXAMINE geöffnet, Mails werden mit BODY.PEEK gelesen: nichts wird als gelesen markiert, verschoben, gelöscht oder angelegt. Das automatische Löschen ist in diesem Modus aus.
-- Gelesen werden nur mögliche Versandmails der letzten 3 Tage. Bei Gmail sucht der Server selbst (`X-GM-RAW`, ohne Gesendet), bei anderen Servern über Datum plus Absender- und Betreff-Wörter (`mail/readonly.py`).
-- Bereits gelesene Mails merkt sich die Integration bis zum Neustart (je UIDVALIDITY). Nach einem Neustart werden die Mails der letzten 3 Tage noch einmal abgerufen, aber nicht erneut verarbeitet: Die Message-IDs verarbeiteter Mails speichert die Integration dauerhaft.
+- Gelesen werden nur mögliche Versandmails. Der erste Abruf nach Installation oder Neustart ist eine Bestandsaufnahme der letzten 14 Tage (so alt darf eine Versandmail laut Original höchstens sein), danach jeweils die letzten 3 Tage. Bei Gmail sucht der Server selbst (`X-GM-RAW`, ohne Gesendet), bei anderen Servern über Datum plus Absender- und Betreff-Wörter (`mail/readonly.py`).
+- Bereits gelesene Mails merkt sich die Integration bis zum Neustart (je UIDVALIDITY). Nach einem Neustart werden die Mails der letzten 14 Tage noch einmal abgerufen, aber nicht erneut verarbeitet: Die Message-IDs verarbeiteter Mails speichert die Integration dauerhaft.
 - Für Gmail: IMAP-Server `imap.gmail.com`, Benutzer ist die Gmail-Adresse, Passwort ein App-Passwort.
 
 ## Upstream einspielen

@@ -39,7 +39,7 @@ from ..const import (
     MIN_DELETE_PROCESSED_DAYS,
     MIN_IMAP_PORT,
 )
-from .readonly import search_args
+from .readonly import INITIAL_DAYS, READ_ONLY_DAYS, search_args
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -485,6 +485,8 @@ class MailboxClient:
         self.read_only = bool(read_only)
         self._looked_at: set[str] = set()
         self._uidvalidity: str | None = None
+        # The first successful search of a session looks back INITIAL_DAYS.
+        self._stock_taken = False
         self.user = user
         self.folder = clean_folder(folder)
         self.port = clean_port(port)
@@ -836,9 +838,11 @@ class MailboxClient:
             if validity != self._uidvalidity:
                 self._uidvalidity = validity
                 self._looked_at.clear()
+                self._stock_taken = False
             caps = self._capabilities(conn)
             today = datetime.now(UTC).date()
-            status, data = conn.uid("SEARCH", None, *search_args(caps, today))
+            days = READ_ONLY_DAYS if self._stock_taken else INITIAL_DAYS
+            status, data = conn.uid("SEARCH", None, *search_args(caps, today, days))
             if status != "OK":
                 raise ImapUnavailable("search failed")
             found = (data or [b""])[0] or b""
@@ -852,6 +856,9 @@ class MailboxClient:
                 raw = next((p[1] for p in parts or [] if isinstance(p, tuple)), None)
                 if status == "OK" and raw:
                     mails.append((uid, raw))
+            # Over FETCH_LIMIT the rest of the stock-taking comes in the next runs.
+            if len(uids) - len(self._looked_at & set(uids)) <= FETCH_LIMIT:
+                self._stock_taken = True
             return mails
         except (OSError, imaplib.IMAP4.error) as err:
             raise ImapUnavailable(type(err).__name__) from err
