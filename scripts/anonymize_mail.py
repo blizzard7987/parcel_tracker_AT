@@ -802,6 +802,9 @@ _T_ATTRIBUTION_START = re.compile(r"^[> \t]*(?:Am|On)[ \t]")
 # The domains of every sender the import knows (KNOWN_MAIL_DOMAINS of the integration, a test
 # keeps both the same): only such a sender stays in an attribution line.
 _T_KNOWN_DOMAINS = frozenset({
+    # Paket Tracker AT: Austrian shops
+    "aboutyou.at", "apol.at", "apotheke.at", "asambeauty.com", "dm.at", "exporto.at",
+    "pharmeo.at", "shop-apotheke.at",
     "aliexpress.com", "amazon.de", "dhl.com", "dhl.de", "dhlecommerce.nl", "dpd.at", "dpd.de",
     "ebay.com", "eventim.de", "gls-group.eu", "gls-pakete.de", "gls-rtt.com", "hes.de",
     "myhes.de", "paketankuendigung.myhermes.de", "post.at", "service.dpd.de", "ups.com",

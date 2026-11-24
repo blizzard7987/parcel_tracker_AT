@@ -22,7 +22,7 @@ def build_carriers(
     """
     return {
         "dhl": DhlCarrier(session, dhl_api_key),
-        "dpd": DpdCarrier(),
+        "dpd": DpdCarrier(country),
         "hermes": HermesCarrier(session),
         "hes": HesCarrier(session),
         "gls": GlsCarrier(session, country),

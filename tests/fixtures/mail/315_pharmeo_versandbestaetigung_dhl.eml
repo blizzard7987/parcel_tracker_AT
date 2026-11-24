@@ -1,0 +1,15 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: Pharmeo Service <no-reply@pharmeo.at>
+To: max@example.org
+Subject: =?utf-8?q?Ihre_Bestellung_499999999_bei_Pharmeo_AT=3A_Versandbest=C3=A4tigun?=
+ =?utf-8?q?g_=26_Rechnungsinformation?=
+Date: Wed, 10 Jun 2026 16:31:25 +0200
+Message-ID: <fixture-315@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Guten Tag Max Mustermann,</p><p>Ihre Bestellung 499999999 wurde heute fertiggestellt und an DHL übergeben.</p><p>Bei eventuellen Nachfragen geben Sie bitte folgende Sendungsnummer an: CR999999999DE</p>
+</body></html>

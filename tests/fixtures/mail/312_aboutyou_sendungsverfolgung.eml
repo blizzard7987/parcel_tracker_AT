@@ -1,0 +1,14 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: ABOUT YOU <noreply@aboutyou.at>
+To: max@example.org
+Subject: ABOUT YOU - Sendungsverfolgung: ayat-200-999999999
+Date: Thu, 15 Oct 2026 12:00:00 +0200
+Message-ID: <fixture-312@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Hey Max,</p><p>Lieferadresse: Max Mustermann Musterstraße 1 9999 Musterstadt</p><p>Deine versendeten Produkte</p><p>Sendungsnummer: 09999999999921</p><p>Voraussichtliche Lieferung: 2-3 Werktage</p>
+</body></html>

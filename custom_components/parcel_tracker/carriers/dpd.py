@@ -16,6 +16,7 @@ import aiohttp
 from ..const import MAX_EVENTS
 from ..models import ParcelStatus, TrackingEvent, TrackingResult
 from .base import BERLIN, Carrier, CarrierUnavailable, Match, NotFound, ParseError
+from .dpd_at import fetch_dpd_at
 
 DPD_ENTRY_URL = "https://my.dpd.de/redirect.aspx"
 _UA = (
@@ -103,17 +104,42 @@ def parse_dpd(page: str, today: date) -> TrackingResult:
     )
 
 
+def forwarded_to_austria(url: str) -> bool:
+    """my.dpd.de's "go to DPD Austria" page ("forwarding.aspx?…&alpha3=AUT")."""
+    lower = url.lower()
+    return "forwarding.aspx" in lower and "alpha3=aut" in lower
+
+
+class _ForwardedToAustria(Exception):
+    """my.dpd.de only forwards this parcel to mydpd.at."""
+
+
 class DpdCarrier(Carrier):
-    """DPD Germany (public web tracking)."""
+    """DPD Germany (public web tracking); Austrian parcels via mydpd.at (Paket Tracker AT)."""
 
     key = "dpd"
     name = "DPD"
+
+    def __init__(self, country: str | None = None) -> None:
+        # Paket Tracker AT: with country "at" mydpd.at is asked first.
+        self._country = (country or "").lower()
 
     @staticmethod
     def matches(number: str) -> Match:
         return Match.POSSIBLE if len(number) == 14 and number.isdigit() else Match.NO
 
     async def fetch(self, number: str, postcode: str | None) -> TrackingResult:
+        if self._country == "at":
+            try:
+                return await fetch_dpd_at(number)
+            except NotFound:
+                pass  # a German parcel: the German page knows it
+        try:
+            return await self._fetch_de(number)
+        except _ForwardedToAustria:
+            return await fetch_dpd_at(number)
+
+    async def _fetch_de(self, number: str) -> TrackingResult:
         headers = {"User-Agent": _UA, "Accept-Language": "de-DE,de;q=0.9"}
         try:
             async with aiohttp.ClientSession(
@@ -124,6 +150,8 @@ class DpdCarrier(Carrier):
                 ) as resp:
                     if resp.status != 200:
                         raise CarrierUnavailable(f"DPD HTTP {resp.status}")
+                    if forwarded_to_austria(str(resp.url)):
+                        raise _ForwardedToAustria(number)
                     if "showerror" in str(resp.url).lower():
                         raise CarrierUnavailable("DPD returned its error page")
                     try:

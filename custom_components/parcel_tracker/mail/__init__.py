@@ -24,6 +24,7 @@ from .amazon import (
     parse_amazon_return,
     subject_status,
 )
+from .at_shops import AT_SHOPS, at_shop, parse_at_shop_mail
 from .base import (
     DPD_DOMAINS,
     MailResult,
@@ -108,6 +109,8 @@ KNOWN_MAIL_DOMAINS = frozenset(
         ALIEXPRESS_DOMAIN,
         # (HES writes from hes.de; its tracking page is at myhes.de)
         *HES_DOMAINS,
+        # Paket Tracker AT: Austrian shops
+        *AT_SHOPS,
         *(domain_of(address) for address in _KNOWN_SENDERS if address != ALIEXPRESS_SENDER),
     }
 )
@@ -252,6 +255,10 @@ def _route(msg: EmailMessage, read_otp: bool, plain_names: bool) -> MailResult:
         return MailResult(updates=updates)
     if domain in DPD_DOMAINS and (updates := parse_dpd_de_mail(msg)):
         return MailResult(updates=updates)
+    # Paket Tracker AT: Austrian shops name the carrier's number (Post, DPD, DHL).
+    if at_shop(address):
+        updates, ignored = parse_at_shop_mail(msg)
+        return MailResult(updates=updates, ignored=ignored)
     # Paket Tracker AT: Österreichische Post. Its other mails (receipts, invoices, labels,
     # shop orders) never go to the generic parser: they would make parcels of numbers.
     if domain == POST_AT_DOMAIN or domain.endswith(f".{POST_AT_DOMAIN}"):

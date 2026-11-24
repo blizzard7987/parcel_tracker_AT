@@ -1,0 +1,14 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: ASAMBEAUTY <notifications@asambeauty.com>
+To: max@example.org
+Subject: =?utf-8?q?Deine_Bestellung_ist_unterwegs_=E2=80=93_wir_freuen_uns_mit_Dir?=
+Date: Fri, 30 Oct 2026 04:15:03 +0100
+Message-ID: <fixture-314@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Hallo Max,</p><p>Deine Bestellung ist jetzt fertig gepackt und in Kürze bei Dir.</p><p>Deine Tracking Nummer: <br><a href="https://www.post.at/s/sendungsdetails?snr=1099999999999993112309" target="_blank">1099999999999993112309</a></p><p>Bestellnummer: AT99999</p>
+</body></html>

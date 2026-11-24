@@ -1,0 +1,15 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: apotheke.at <kontakt@apotheke.at>
+To: max@example.org
+Subject: =?utf-8?q?Ihre_Bestellung_ist_auf_dem_Weg_=E2=80=93_Versanddetails_=26_Rechn?=
+ =?utf-8?q?ung?=
+Date: Mon, 23 Nov 2026 15:00:00 +0100
+Message-ID: <fixture-313@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Sehr geehrter Herr Mustermann,</p><p>Ihre Bestellung ist auf dem Weg zu Ihnen.</p><p>Alternativ finden Sie hier Ihre Sendungsnummer: 09999999999922</p>
+</body></html>
