@@ -96,7 +96,7 @@ def test_out_for_delivery_with_window():
     )
     result = parse_post_at(shipment)
     assert result.status is ParcelStatus.OUT_FOR_DELIVERY
-    assert result.status_text == "In Zustellung"
+    assert result.status_text == "In Zustellung"  # the newest scan, not Post's code
     assert result.eta_date.isoformat() == "2026-11-14"
     assert result.eta_from == datetime(2026, 11, 14, 13, 0, tzinfo=VIENNA)
     assert result.eta_to == datetime(2026, 11, 14, 15, 0, tzinfo=VIENNA)
@@ -171,3 +171,12 @@ async def test_fetch_errors():
         async with aiohttp.ClientSession() as session:
             with pytest.raises(CarrierUnavailable):
                 await PostAtCarrier(session).fetch(NUMBER, None)
+
+
+def test_status_text_is_the_newest_scan_not_posts_code():
+    shipment = _shipment(
+        _event("delivered", "2026-11-14T13:27:00", "Sendung von Post-Empfangsbox abgeholt"),
+        status="ZU",
+    )
+    assert parse_post_at(shipment).status_text == "Sendung von Post-Empfangsbox abgeholt"
+    assert parse_post_at(_shipment(status="ZU")).status_text == "ZU"

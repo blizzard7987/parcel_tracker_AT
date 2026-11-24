@@ -149,7 +149,8 @@ def parse_post_at(shipment: dict[str, Any]) -> TrackingResult:
     )
     return TrackingResult(
         status=status,
-        status_text=_text(shipment.get("status")),
+        # Post's own "status" is a short code ("ZU"): the newest scan's words say more.
+        status_text=(events[0].text if events else None) or _text(shipment.get("status")),
         eta_date=first if open_parcel else None,
         eta_latest=last if open_parcel and last and first and last > first else None,
         eta_from=_clock(first, eta.get("startTime")) if open_parcel else None,
