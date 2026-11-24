@@ -49,6 +49,22 @@ def poll_interval(
     return interval
 
 
+def mail_delay(interval: timedelta, now: datetime) -> timedelta:
+    """Time until the next mail check: the set interval by day, hourly from 22 to 6.
+
+    Shipping mails rarely matter at night, so the mailbox is checked at most once an
+    hour then; the first check of the day still comes right at 6 (not up to an hour
+    later), and a longer interval of the user always wins.
+    """
+    local = now.astimezone(BERLIN)
+    if 6 <= local.hour < 22:
+        return interval
+    morning = local.replace(hour=6, minute=0, second=0, microsecond=0)
+    if local.hour >= 22:
+        morning += timedelta(days=1)
+    return max(interval, min(_NIGHT_MIN, morning - local))
+
+
 def backoff(streak: int) -> timedelta:
     """Exponential backoff 5, 10, 20 … capped at 120 minutes."""
     minutes = min(5 * 2 ** max(streak - 1, 0), 120)

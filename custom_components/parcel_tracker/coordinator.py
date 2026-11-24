@@ -156,7 +156,14 @@ from .notification import (
     notify_event,
     service_name,
 )
-from .schedule import GLS_MIN_INTERVAL, backoff, order_overdue, poll_interval, should_remove
+from .schedule import (
+    GLS_MIN_INTERVAL,
+    backoff,
+    mail_delay,
+    order_overdue,
+    poll_interval,
+    should_remove,
+)
 from .store import DuplicateParcel, ParcelStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -899,7 +906,7 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             if self._mail_next is not None and now < self._mail_next:
                 return
             # Set before fetching, so a failure can't make the next tick try again at once.
-            self._mail_next = now + self._mail_interval
+            self._mail_next = now + mail_delay(self._mail_interval, now)
             self._mail_last = now
             try:
                 await self._import_mail(self.mailbox, now)

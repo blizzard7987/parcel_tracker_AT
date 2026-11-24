@@ -122,7 +122,7 @@
               "mail_read_only": "Hauptpostfach nur lesen (nichts markieren oder verschieben)",
               "move_processed": "Verarbeitete Mails in Ordner verschieben",
               "delete_processed_days": "Erkannte Mails löschen nach (Tagen)",
-              "mail_interval": "Postfach abfragen alle (Minuten)"
+              "mail_interval": "Postfach abfragen alle (Minuten; 22–6 höchstens stündlich)"
             },
             "data_description": {
               "mail_enabled": "Ausschalten entfernt den gespeicherten Benutzernamen und das Passwort.",
