@@ -49,6 +49,7 @@ from .gls import GLS_GROUP_SENDERS, GLS_SENDER, parse_gls_group_mail, parse_gls_
 from .hermes import HERMES_SENDER, parse_hermes_mail
 from .hes import HES_DOMAINS, HES_SENDER, parse_hes_mail
 from .post_at import POST_AT_DOMAIN, POST_AT_SENDERS, is_post_at_parcel_mail, parse_post_at_mail
+from .schema_org import parse_schema_org
 from .shipping import (
     DHL_COM_DOMAIN,
     DHL_DOMAIN,
@@ -268,5 +269,8 @@ def _route(msg: EmailMessage, read_otp: bool, plain_names: bool) -> MailResult:
     # GLS numbers (11 digits) are never read by the generic parser: a GLS mail someone
     # forwarded by hand is recognised by its subject instead.
     if (address == GLS_SENDER or is_forwarded(msg)) and (updates := parse_gls_mail(msg)):
+        return MailResult(updates=updates)
+    # Paket Tracker AT: schema.org ParcelDelivery data (Google Store and many other shops).
+    if updates := parse_schema_org(msg):
         return MailResult(updates=updates)
     return MailResult(updates=parse_generic(msg))

@@ -189,6 +189,9 @@ class DhlCarrier(Carrier):
             return Match.SURE
         if number.startswith("JJD"):
             return Match.POSSIBLE
+        # DHL eCommerce Europe / DHL Parcel NL (Google Store, carrier "DHLN")
+        if number.startswith("JVGL") and number[4:].isdigit():
+            return Match.POSSIBLE
         if len(number) == 12 and number.isdigit():
             return Match.POSSIBLE
         return Match.NO

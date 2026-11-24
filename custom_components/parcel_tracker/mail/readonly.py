@@ -49,6 +49,8 @@ SENDER_WORDS = (
     "pharmeo.at",
     "apol.at",
     "exporto.at",
+    # Shops whose mails carry schema.org ParcelDelivery data (mail/schema_org.py)
+    "googlestore-noreply@google.com",
 )
 
 # Subject words of shipping mails (ASCII only: the search must not need a charset).
@@ -67,6 +69,7 @@ SUBJECT_WORDS = (
     "shipped",
     "abholbereit",
     "abholung",
+    "versandbereit",
 )
 
 GMAIL_CAPABILITY = "X-GM-EXT-1"
