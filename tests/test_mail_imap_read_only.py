@@ -140,3 +140,16 @@ def test_stock_taking_continues_while_over_the_fetch_limit(monkeypatch):
     client.finish([(uid, None) for uid, _ in second], move=False)
     client.fetch_unseen()
     assert "newer_than:3d" in _search_days(FakeImap.instances[2])
+
+
+def test_search_covers_the_parsers_senders_but_not_amazon_marketing():
+    from custom_components.parcel_tracker.mail.amazon import AMAZON_SENDERS, RETURNS_SENDER
+    from custom_components.parcel_tracker.mail.at_shops import AT_SHOPS
+    from custom_components.parcel_tracker.mail.readonly import SENDER_WORDS
+
+    for sender in (*AMAZON_SENDERS, RETURNS_SENDER):
+        assert any(word in sender for word in SENDER_WORDS), sender
+    for domain in AT_SHOPS:
+        assert domain in SENDER_WORDS
+    assert not any(word in "prime@amazon.de" for word in SENDER_WORDS)
+    assert not any(word in "customer-reviews-messages@amazon.de" for word in SENDER_WORDS)
