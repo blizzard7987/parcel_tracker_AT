@@ -78,6 +78,17 @@ Lehnt der Mailserver die Anmeldung ab? Viele Anbieter verlangen für IMAP nicht 
 - **GMX** und **web.de:** den Zugriff per IMAP in den Einstellungen des Postfachs erst erlauben.
 - **T-Online:** ein eigenes „E-Mail-Passwort“ im Kundencenter unter den E-Mail-Einstellungen anlegen, das Login-Passwort geht für IMAP nicht. IMAP-Server `secureimap.t-online.de`, Port 993, verschlüsselt.
 
+### Gmail mit Google-Anmeldung
+
+Statt eines App-Passworts (das das ganze Postfach öffnet) kann Paket Tracker Gmail über eine Google-Anmeldung lesen, die nur `gmail.readonly` erlaubt: Google selbst stellt sicher, dass nichts verändert wird, und der Zugriff lässt sich im Google-Konto jederzeit entziehen. Der OAuth-Client ist dein eigener; kein Dritter sieht Token oder Mails. Gelesen wird wie im Nur-lesen-Modus: dieselbe Gmail-Suche, beim Start 14 Tage, danach 3 Tage.
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/) ein Projekt anlegen und die **Gmail API** aktivieren.
+2. **OAuth-Zustimmungsbildschirm**: Typ *Extern*, Scope `https://www.googleapis.com/auth/gmail.readonly`, dann **App veröffentlichen** („In Produktion“). Im Status *Testen* läuft die Anmeldung nach 7 Tagen ab. Die Warnung „Google hat diese App nicht überprüft“ ist bei eigener Nutzung normal.
+3. **Anmeldedaten → OAuth-Client-ID**: Typ *Webanwendung*, autorisierte Weiterleitungs-URI `https://my.home-assistant.io/redirect/oauth`.
+4. In Home Assistant: **Einstellungen → Geräte & Dienste → Paket Tracker → ⋮ → Neu konfigurieren → Gmail verbinden**, Client-ID und Secret eintragen, bei Google anmelden.
+
+Ist die Google-Anmeldung gesetzt, hat sie Vorrang vor dem IMAP-Zugang. Entfernen geht über denselben Weg („Google-Anmeldung entfernen“); den Zugriff danach auch im Google-Konto entziehen.
+
 ### Wie oft wird das Postfach gelesen?
 
 - Im eingestellten Intervall (1–1440 Minuten, Standard 5) schaut der Import nach ungelesenen Mails im eingestellten Ordner (Standard: Posteingang).

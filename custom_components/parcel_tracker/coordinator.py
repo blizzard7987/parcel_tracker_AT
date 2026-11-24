@@ -906,13 +906,15 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 await self._purge_processed(self.mailbox, now)
             except ImapAuthError:
                 self._mail_failed(now, "auth")
+                # A Google sign-in has its own repair: re-signing in, not a password.
+                issue = "gmail_auth" if getattr(self.mailbox, "gmail_api", False) else "imap_auth"
                 ir.async_create_issue(
                     self.hass,
                     DOMAIN,
-                    "imap_auth",
+                    issue,
                     is_fixable=False,
                     severity=ir.IssueSeverity.ERROR,
-                    translation_key="imap_auth",
+                    translation_key=issue,
                 )
             except ImapFolderNotFound:
                 # Once per outage, without the folder name; no repair: the options
@@ -978,7 +980,11 @@ class ParcelCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         )
 
     async def _import_mail(self, mailbox: MailboxClient, now: datetime) -> None:
-        mails = await self.hass.async_add_executor_job(mailbox.fetch_unseen)
+        if callable(fetch := getattr(mailbox, "async_fetch_unseen", None)):
+            mails = await fetch()  # Gmail API: async, no thread needed
+            ir.async_delete_issue(self.hass, DOMAIN, "gmail_auth")
+        else:
+            mails = await self.hass.async_add_executor_job(mailbox.fetch_unseen)
         ir.async_delete_issue(self.hass, DOMAIN, "imap_auth")
         self._mail_streak = 0
         self._mail_error = self._mail_error_kind = None
