@@ -1,4 +1,7 @@
 {
+  "application_credentials": {
+    "description": "Paket Tracker liest Gmail nur lesend mit deinem eigenen Google-OAuth-Client. In [Google Cloud]({oauth_creds_url}): Gmail API aktivieren, den [Zustimmungsbildschirm]({oauth_consent_url}) einrichten (Extern, Scope gmail.readonly, veröffentlichen), dann einen OAuth-Client vom Typ „Webanwendung“ mit der Weiterleitungs-URI {redirect_url} anlegen. Client-ID und Secret hier eintragen. Mehr: {more_info_url}"
+  },
   "config": {
     "step": {
       "user": {
@@ -20,7 +23,22 @@
         "title": "DHL-API-Key abgelehnt",
         "description": "Gib einen gültigen DHL-API-Key ein.",
         "data": {"dhl_api_key": "DHL-API-Key"}
-      }
+      },
+        "reconfigure": {
+          "title": "Gmail mit Google-Anmeldung",
+          "description": "Statt mit einem App-Passwort kann Paket Tracker Gmail über eine Google-Anmeldung lesen, die nur Lesen erlaubt (gmail.readonly). Dafür dient dein eigener OAuth-Client unter Einstellungen › Anwendungsanmeldeinformationen.",
+          "menu_options": {
+            "gmail_connect": "Gmail verbinden (nur lesen)",
+            "gmail_disconnect": "Google-Anmeldung entfernen"
+          }
+        },
+        "pick_implementation": {
+          "title": "OAuth-Client wählen"
+        },
+        "gmail_reauth": {
+          "title": "Google-Anmeldung abgelaufen",
+          "description": "Google akzeptiert die Anmeldung zum Lesen von Gmail nicht mehr. Melde dich neu an, damit der Mail-Import weiterläuft."
+        }
     },
     "error": {
       "invalid_key": "DHL hat diesen API-Key abgelehnt.",
@@ -30,7 +48,20 @@
     },
     "abort": {
       "single_instance_allowed": "Paket Tracker ist bereits eingerichtet.",
-      "reauth_successful": "API-Key aktualisiert."
+      "reauth_successful": "API-Key aktualisiert.",
+        "reconfigure_successful": "Gmail ist verbunden.",
+        "gmail_disconnected": "Die Google-Anmeldung ist entfernt. Entziehe den Zugriff auch in deinem Google-Konto (myaccount.google.com › Sicherheit › Drittanbieter-Apps).",
+        "gmail_no_access": "Die Anmeldung hat geklappt, aber Gmail lässt sich damit nicht lesen. Erlaube auf der Google-Seite das Lesen von Gmail und prüfe, ob die Gmail API im Google-Cloud-Projekt aktiviert ist.",
+        "gmail_via_reconfigure": "Richte zuerst Paket Tracker ein und verbinde Gmail danach über „Neu konfigurieren“.",
+        "missing_configuration": "Für Paket Tracker gibt es noch keinen OAuth-Client. Lege einen unter Einstellungen › Anwendungsanmeldeinformationen an.",
+        "missing_credentials": "Für Paket Tracker gibt es noch keinen OAuth-Client. Lege einen unter Einstellungen › Anwendungsanmeldeinformationen an.",
+        "authorize_url_timeout": "Zeitüberschreitung beim Erstellen des Google-Anmeldelinks.",
+        "no_url_available": "Keine URL verfügbar. Prüfe, ob Home Assistant eine externe oder interne URL hat.",
+        "oauth_error": "Google hat ungültige Token-Daten geliefert.",
+        "oauth_failed": "Google hat kein Token ausgegeben.",
+        "oauth_timeout": "Google hat zu lange für das Token gebraucht.",
+        "oauth_unauthorized": "Google hat den OAuth-Client abgelehnt (falsche Client-ID oder falsches Secret?).",
+        "user_rejected_authorize": "Die Anmeldung wurde bei Google abgelehnt."
     },
     "create_entry": {
       "default": "Seite einmal neu laden, dann im Dashboard die Karte „Paket Tracker“ hinzufügen."
@@ -202,6 +233,10 @@
     }
   },
   "issues": {
+      "gmail_auth": {
+        "title": "Google-Anmeldung für Gmail abgelaufen",
+        "description": "Der Mail-Import kann Gmail nicht mehr lesen: Die Google-Anmeldung ist abgelaufen, wurde entzogen oder ihr OAuth-Client fehlt. Öffne Paket Tracker › Neu konfigurieren › Gmail verbinden und melde dich neu an. Passiert das alle 7 Tage, veröffentliche die OAuth-App in Google Cloud („In Produktion“)."
+      },
     "dhl_auth": {
       "title": "DHL-API-Key abgelehnt",
       "description": "DHL akzeptiert den API-Key nicht mehr. Öffne die Integration Paket Tracker und gib einen neuen Key ein."

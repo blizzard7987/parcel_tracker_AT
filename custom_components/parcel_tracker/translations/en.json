@@ -1,4 +1,7 @@
 {
+  "application_credentials": {
+    "description": "Paket Tracker reads Gmail read-only with your own Google OAuth client. In [Google Cloud]({oauth_creds_url}): enable the Gmail API, set up the [consent screen]({oauth_consent_url}) (External, add the scope gmail.readonly, publish it), then create an OAuth client of type “Web application” with the redirect URI {redirect_url}. Enter its client ID and secret here. More: {more_info_url}"
+  },
   "config": {
     "step": {
       "user": {
@@ -20,7 +23,22 @@
         "title": "DHL API key rejected",
         "description": "Enter a valid DHL API key.",
         "data": {"dhl_api_key": "DHL API key"}
-      }
+      },
+        "reconfigure": {
+          "title": "Gmail with Google sign-in",
+          "description": "Instead of an app password, Paket Tracker can read Gmail through a Google sign-in that only allows reading (gmail.readonly). It uses your own OAuth client from Settings › Application Credentials.",
+          "menu_options": {
+            "gmail_connect": "Connect Gmail (read-only)",
+            "gmail_disconnect": "Remove the Google sign-in"
+          }
+        },
+        "pick_implementation": {
+          "title": "Pick the OAuth client"
+        },
+        "gmail_reauth": {
+          "title": "Google sign-in expired",
+          "description": "Google no longer accepts the sign-in for reading Gmail. Sign in again to continue the mail import."
+        }
     },
     "error": {
       "invalid_key": "DHL rejected this API key.",
@@ -30,7 +48,20 @@
     },
     "abort": {
       "single_instance_allowed": "Parcel Tracker is already set up.",
-      "reauth_successful": "API key updated."
+      "reauth_successful": "API key updated.",
+        "reconfigure_successful": "Gmail is connected.",
+        "gmail_disconnected": "The Google sign-in is removed. Revoke the access in your Google account as well (myaccount.google.com › Security › Third-party apps).",
+        "gmail_no_access": "The sign-in worked, but Gmail cannot be read with it. Allow reading Gmail on the Google consent page and check that the Gmail API is enabled in your Google Cloud project.",
+        "gmail_via_reconfigure": "Set up Paket Tracker first, then connect Gmail via “Reconfigure”.",
+        "missing_configuration": "No OAuth client for Paket Tracker yet. Add one under Settings › Application Credentials.",
+        "missing_credentials": "No OAuth client for Paket Tracker yet. Add one under Settings › Application Credentials.",
+        "authorize_url_timeout": "Timeout generating the Google sign-in link.",
+        "no_url_available": "No URL available. Check that Home Assistant has an external or internal URL.",
+        "oauth_error": "Google returned invalid token data.",
+        "oauth_failed": "Google did not hand out a token.",
+        "oauth_timeout": "Google took too long to hand out a token.",
+        "oauth_unauthorized": "Google refused the OAuth client (wrong client ID or secret?).",
+        "user_rejected_authorize": "The sign-in was declined at Google."
     },
     "create_entry": {
       "default": "Reload the page once, then add the “Paket Tracker” card to your dashboard."
@@ -202,6 +233,10 @@
     }
   },
   "issues": {
+      "gmail_auth": {
+        "title": "Google sign-in for Gmail expired",
+        "description": "The mail import cannot read Gmail anymore: the Google sign-in expired, was revoked or its OAuth client is gone. Open Paket Tracker › Reconfigure › Connect Gmail and sign in again. If this happens every 7 days, publish the OAuth app in Google Cloud (“In production”)."
+      },
     "dhl_auth": {
       "title": "DHL API key rejected",
       "description": "DHL no longer accepts the API key. Open the Parcel Tracker integration and enter a new key."

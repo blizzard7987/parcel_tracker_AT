@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -59,6 +60,7 @@ from .detect import UnsupportedNumber
 from .device import async_register_device
 from .http import ImportMailView
 from .lovelace_resource import async_ensure_resource
+from .mail.gmail_api import GmailApiClient
 from .mail.imap import MailboxClient, clean_security, looks_local
 from .models import person_configs
 from .store import DuplicateParcel, ParcelStore
@@ -127,7 +129,7 @@ def _mailbox(entry: ConfigEntry) -> MailboxClient | None:
     )
 
 
-def _insecure_mail_hint(hass: HomeAssistant, mailbox: MailboxClient | None) -> None:
+def _insecure_mail_hint(hass: HomeAssistant, mailbox: object) -> None:
     """A hint in the repairs while the mailbox is read without verified encryption from
     a server that does not look like one in the own network (see ``looks_local``).
 
@@ -136,7 +138,7 @@ def _insecure_mail_hint(hass: HomeAssistant, mailbox: MailboxClient | None) -> N
     connection is verified again, the host is a local one or the import is off.
     """
     if (
-        mailbox is not None
+        isinstance(mailbox, MailboxClient)
         and mailbox.security != IMAP_SECURITY_SSL
         and not looks_local(mailbox.host)
     ):
@@ -150,6 +152,33 @@ def _insecure_mail_hint(hass: HomeAssistant, mailbox: MailboxClient | None) -> N
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, "imap_insecure")
+
+
+async def _gmail_mailbox(hass: HomeAssistant, entry: ConfigEntry) -> GmailApiClient | None:
+    """Gmail API client when the entry holds a Google sign-in (token + implementation).
+
+    The sign-in takes precedence over IMAP: it is the narrower access (gmail.readonly).
+    Without the OAuth client in Application Credentials anymore, the import is off and
+    a repair asks to sign in again.
+    """
+    if not entry.data.get("token") or not entry.data.get("auth_implementation"):
+        return None
+    try:
+        implementation = (
+            await config_entry_oauth2_flow.async_get_config_entry_implementation(hass, entry)
+        )
+    except ValueError:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "gmail_auth",
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="gmail_auth",
+        )
+        return None
+    session = config_entry_oauth2_flow.OAuth2Session(hass, entry, implementation)
+    return GmailApiClient(session, async_get_clientsession(hass))
 
 
 def _ups_carrier(hass: HomeAssistant, entry: ConfigEntry, budget: ApiBudget) -> UpsCarrier | None:
@@ -375,7 +404,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ParcelConfigEntry) -> bo
     else:
         for issue in ("ups_auth", "ups_budget"):
             ir.async_delete_issue(hass, DOMAIN, issue)
-    mailbox = _mailbox(entry)
+    mailbox = await _gmail_mailbox(hass, entry) or _mailbox(entry)
     if mailbox is None:
         _mail_import_off(hass, entry)
     _insecure_mail_hint(hass, mailbox)

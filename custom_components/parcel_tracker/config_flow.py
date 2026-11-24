@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
+    ConfigEntry,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.core import HomeAssistant, callback, split_entity_id, valid_entity_id
 from homeassistant.data_entry_flow import section
+from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -116,6 +125,7 @@ from .const import (
     entry_country,
     known_country,
 )
+from .mail.gmail_api import GMAIL_API, GMAIL_SCOPE
 from .mail.imap import (
     ImapAuthError,
     ImapCertificateError,
@@ -674,9 +684,23 @@ async def _check_track17(hass, key: str) -> str | None:
     return None
 
 
-class ParcelTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle setup."""
+async def _gmail_readable(hass: HomeAssistant, access_token: str) -> bool:
+    """Whether the token reads the Gmail profile (the scope was granted)."""
+    try:
+        async with async_get_clientsession(hass).get(
+            f"{GMAIL_API}/profile",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            return resp.status == 200
+    except (TimeoutError, aiohttp.ClientError):
+        return False
 
+
+class ParcelTrackerConfigFlow(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN):
+    """Handle setup; the Google sign-in for Gmail (read-only) comes via reconfigure."""
+
+    DOMAIN = DOMAIN
     VERSION = 1
     # 1.2: the notify events are stored once targets are (see ``async_migrate_entry``).
     MINOR_VERSION = 2
@@ -708,8 +732,69 @@ class ParcelTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    @property
+    def logger(self) -> logging.Logger:
+        return logging.getLogger(__name__)
+
+    @property
+    def extra_authorize_data(self) -> dict[str, Any]:
+        # Read-only Gmail and nothing else; offline + consent for a refresh token.
+        return {"scope": GMAIL_SCOPE, "access_type": "offline", "prompt": "consent"}
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Connect Gmail with a Google sign-in, or drop the sign-in again."""
+        entry = self._get_reconfigure_entry()
+        options = ["gmail_connect"]
+        if entry.data.get("token"):
+            options.append("gmail_disconnect")
+        return self.async_show_menu(step_id="reconfigure", menu_options=options)
+
+    async def async_step_gmail_connect(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self.async_step_pick_implementation()
+
+    async def async_step_gmail_disconnect(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self._get_reconfigure_entry()
+        data = {k: v for k, v in entry.data.items() if k not in ("token", "auth_implementation")}
+        return self.async_update_reload_and_abort(
+            entry, data=data, reason="gmail_disconnected"
+        )
+
+    async def async_oauth_create_entry(self, data: dict[str, Any]) -> ConfigFlowResult:
+        """The sign-in worked: check that Gmail can be read, then store it in the entry."""
+        if self.source == SOURCE_REAUTH:
+            entry = self._get_reauth_entry()
+        elif self.source == SOURCE_RECONFIGURE:
+            entry = self._get_reconfigure_entry()
+        else:
+            return self.async_abort(reason="gmail_via_reconfigure")
+        if not await _gmail_readable(self.hass, data["token"].get("access_token", "")):
+            return self.async_abort(reason="gmail_no_access")
+        return self.async_update_reload_and_abort(
+            entry,
+            data_updates={
+                "token": data["token"],
+                "auth_implementation": data["auth_implementation"],
+            },
+        )
+
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
+        if entry_data.get("token"):
+            return await self.async_step_gmail_reauth()
         return await self.async_step_reauth_confirm()
+
+    async def async_step_gmail_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The Google sign-in expired or was revoked: sign in again."""
+        if user_input is None:
+            return self.async_show_form(step_id="gmail_reauth")
+        return await self.async_step_pick_implementation()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
