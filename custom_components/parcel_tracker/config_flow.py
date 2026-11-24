@@ -56,6 +56,7 @@ from .const import (
     CONF_KEEP_DELIVERED_DAYS,
     CONF_MAIL_ENABLED,
     CONF_MAIL_INTERVAL,
+    CONF_MAIL_READ_ONLY,
     CONF_MAIL_SECTION,
     CONF_MOVE_PROCESSED,
     CONF_NOTIFY_ENABLED,
@@ -86,6 +87,7 @@ from .const import (
     DEFAULT_IMAP_SECURITY,
     DEFAULT_KEEP_DELIVERED_DAYS,
     DEFAULT_MAIL_INTERVAL,
+    DEFAULT_MAIL_READ_ONLY,
     DEFAULT_MOVE_PROCESSED,
     DEFAULT_NOTIFY_EVENTS,
     DEFAULT_OWNER,
@@ -477,6 +479,10 @@ def _mail_section(current: Mapping[str, Any]) -> section:
                 vol.Optional(
                     CONF_IMAP_FOLDER, default=_shown_folder(current.get(CONF_IMAP_FOLDER))
                 ): str,
+                vol.Optional(
+                    CONF_MAIL_READ_ONLY,
+                    default=bool(current.get(CONF_MAIL_READ_ONLY, DEFAULT_MAIL_READ_ONLY)),
+                ): bool,
                 vol.Optional(
                     CONF_MOVE_PROCESSED,
                     default=current.get(CONF_MOVE_PROCESSED, DEFAULT_MOVE_PROCESSED),
@@ -1133,6 +1139,15 @@ class ParcelTrackerOptionsFlow(OptionsFlow):
                     mail.get(CONF_DELETE_PROCESSED_DAYS, options.get(CONF_DELETE_PROCESSED_DAYS))
                 ):
                     new_options[CONF_DELETE_PROCESSED_DAYS] = purge_days
+                # Paket Tracker AT: only stored once switched on (or already stored).
+                read_only = bool(
+                    mail.get(
+                        CONF_MAIL_READ_ONLY,
+                        options.get(CONF_MAIL_READ_ONLY, DEFAULT_MAIL_READ_ONLY),
+                    )
+                )
+                if CONF_MAIL_READ_ONLY in options or read_only:
+                    new_options[CONF_MAIL_READ_ONLY] = read_only
                 if CONF_IMAP_FOLDER in options or folder != DEFAULT_IMAP_FOLDER:
                     # An untouched form writes back exactly what is stored.
                     new_options[CONF_IMAP_FOLDER] = (

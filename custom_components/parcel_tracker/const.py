@@ -23,6 +23,8 @@ CONF_IMAP_FOLDER = "imap_folder"
 CONF_IMAP_PORT = "imap_port"
 CONF_IMAP_SECURITY = "imap_security"
 CONF_MOVE_PROCESSED = "move_processed"
+# Paket Tracker AT: read the main mailbox without changing it (mail/readonly.py).
+CONF_MAIL_READ_ONLY = "mail_read_only"
 CONF_DELETE_PROCESSED_DAYS = "delete_processed_days"
 CONF_READ_OTP = "read_otp"
 CONF_PLAIN_NAMES = "plain_names"
@@ -90,6 +92,7 @@ IMAP_SECURITY_PLAIN = "plain"
 IMAP_SECURITIES = (IMAP_SECURITY_SSL, IMAP_SECURITY_NOVERIFY, IMAP_SECURITY_PLAIN)
 DEFAULT_IMAP_SECURITY = IMAP_SECURITY_SSL
 DEFAULT_MOVE_PROCESSED = True
+DEFAULT_MAIL_READ_ONLY = False
 # Recognised mails in Paket-Tracker-Verarbeitet are deleted after this many days; 0: never.
 DEFAULT_DELETE_PROCESSED_DAYS = 0
 MIN_DELETE_PROCESSED_DAYS = 1

@@ -22,7 +22,7 @@ import logging
 import re
 import ssl
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from ..const import (
@@ -39,6 +39,7 @@ from ..const import (
     MIN_DELETE_PROCESSED_DAYS,
     MIN_IMAP_PORT,
 )
+from .readonly import INITIAL_DAYS, READ_ONLY_DAYS, search_args
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -435,6 +436,18 @@ def imap_date(day: date) -> str:
     return f"{day.day:02d}-{_MONTHS[day.month - 1]}-{day.year}"
 
 
+def _uidvalidity(conn: Any) -> str | None:
+    """UIDVALIDITY the server sent with SELECT/EXAMINE, if any."""
+    try:
+        _, data = conn.response("UIDVALIDITY")
+    except Exception:  # noqa: BLE001 - only a hint for the UID memory
+        return None
+    item = (data or [None])[0]
+    if isinstance(item, bytes):
+        item = item.decode("ascii", "replace")
+    return str(item) if item else None
+
+
 def _is_auth_error(err: Exception) -> bool:
     text = str(err).lower()
     return any(marker in text for marker in _AUTH_MARKERS)
@@ -464,8 +477,16 @@ class MailboxClient:
         folder: str | None = None,
         port: Any = DEFAULT_IMAP_PORT,
         security: Any = DEFAULT_IMAP_SECURITY,
+        read_only: bool = False,
     ) -> None:
         self.host = host
+        # Paket Tracker AT: main mailbox, opened with EXAMINE, nothing marked or filed
+        # (see mail/readonly.py). UIDs looked at in this session, per UIDVALIDITY.
+        self.read_only = bool(read_only)
+        self._looked_at: set[str] = set()
+        self._uidvalidity: str | None = None
+        # The first successful search of a session looks back INITIAL_DAYS.
+        self._stock_taken = False
         self.user = user
         self.folder = clean_folder(folder)
         self.port = clean_port(port)
@@ -552,7 +573,10 @@ class MailboxClient:
         conn = self._open()
         try:
             try:
-                status, _ = conn.select(mailbox)
+                if self.read_only:
+                    status, _ = conn.select(mailbox, readonly=True)
+                else:
+                    status, _ = conn.select(mailbox)
             except (OSError, imaplib.IMAP4.error) as err:
                 raise ImapUnavailable(type(err).__name__) from err
             if status != "OK":
@@ -636,6 +660,8 @@ class MailboxClient:
 
     def fetch_unseen(self) -> list[tuple[str, bytes]]:
         """(uid, raw message) of the folder's unseen mails, oldest first, not marked."""
+        if self.read_only:
+            return self._fetch_read_only()
         conn = self._connect()
         try:
             status, data = conn.uid("SEARCH", None, "UNSEEN")
@@ -660,7 +686,12 @@ class MailboxClient:
         ``dispositions`` holds (uid, folder); folder None means "only mark seen".
         A failed CREATE/COPY/MOVE leaves the mail where it is (marked seen); the first
         such failure after a working run is a warning in the log (see ``filing_state``).
+        In read-only mode nothing is sent to the server: the mails are only remembered
+        as looked at.
         """
+        if self.read_only:
+            self._looked_at.update(uid for uid, _ in dispositions)
+            return
         conn = self._connect()
         try:
             caps = self._capabilities(conn) if move else set()
@@ -750,7 +781,8 @@ class MailboxClient:
         ImapExpungeRefused when the server keeps the marked mails.
         """
         if (
-            not isinstance(days, int)
+            self.read_only
+            or not isinstance(days, int)
             or isinstance(days, bool)
             or not MIN_DELETE_PROCESSED_DAYS <= days <= MAX_DELETE_PROCESSED_DAYS
         ):
@@ -791,6 +823,43 @@ class MailboxClient:
                     if status != "OK":
                         raise ImapExpungeRefused("expunge refused")
             return len(marked)
+        except (OSError, imaplib.IMAP4.error) as err:
+            raise ImapUnavailable(type(err).__name__) from err
+        finally:
+            self._logout(conn)
+
+    def _fetch_read_only(self) -> list[tuple[str, bytes]]:
+        """(uid, raw message) of the shipping mails found by the server-side search that
+        were not looked at yet in this session, oldest first. EXAMINE and BODY.PEEK:
+        no flag changes."""
+        conn = self._connect()
+        try:
+            validity = _uidvalidity(conn)
+            if validity != self._uidvalidity:
+                self._uidvalidity = validity
+                self._looked_at.clear()
+                self._stock_taken = False
+            caps = self._capabilities(conn)
+            today = datetime.now(UTC).date()
+            days = READ_ONLY_DAYS if self._stock_taken else INITIAL_DAYS
+            status, data = conn.uid("SEARCH", None, *search_args(caps, today, days))
+            if status != "OK":
+                raise ImapUnavailable("search failed")
+            found = (data or [b""])[0] or b""
+            if isinstance(found, str):
+                found = found.encode("ascii", "replace")
+            uids = [u.decode() for u in found.split() if u.isdigit()]
+            fresh = [u for u in uids if u not in self._looked_at][:FETCH_LIMIT]
+            mails: list[tuple[str, bytes]] = []
+            for uid in fresh:
+                status, parts = conn.uid("FETCH", uid, "(BODY.PEEK[])")
+                raw = next((p[1] for p in parts or [] if isinstance(p, tuple)), None)
+                if status == "OK" and raw:
+                    mails.append((uid, raw))
+            # Over FETCH_LIMIT the rest of the stock-taking comes in the next runs.
+            if len(uids) - len(self._looked_at & set(uids)) <= FETCH_LIMIT:
+                self._stock_taken = True
+            return mails
         except (OSError, imaplib.IMAP4.error) as err:
             raise ImapUnavailable(type(err).__name__) from err
         finally:
