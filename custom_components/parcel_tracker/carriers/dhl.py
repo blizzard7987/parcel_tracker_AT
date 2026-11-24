@@ -22,6 +22,7 @@ from .base import (
     RateLimited,
     plain_text,
 )
+from .dhl_public import fetch_dhl_de, fetch_dhl_nl
 
 DHL_URL = "https://api-eu.dhl.com/track/shipments"
 _PROBE_NUMBER = "00340000000000000000"
@@ -210,6 +211,8 @@ class DhlCarrier(Carrier):
             raise CarrierUnavailable(str(err)) from err
 
     async def fetch(self, number: str, postcode: str | None) -> TrackingResult:
+        if not self._api_key:
+            return await self._fetch_public(number)
         # No "service": DHL finds it from the number, and a fixed one ("parcel-de") would
         # turn Express and eCommerce shipments into a 404. No country codes either.
         params = {"trackingNumber": number, "language": "de"}
@@ -231,6 +234,27 @@ class DhlCarrier(Carrier):
                 retry = resp.headers.get("Retry-After")
                 raise RateLimited(int(retry) if retry and retry.isdigit() else None)
             raise CarrierUnavailable(f"DHL HTTP {resp.status}")
+
+    async def _fetch_public(self, number: str) -> TrackingResult:
+        """Paket Tracker AT: without a key, DHL's own public tracking (dhl_public.py).
+
+        DHL Parcel NL numbers (``JVGL…``) at the Dutch page; every other number at the
+        German page, then at the Dutch one if the German page does not know it.
+        Whatever goes wrong there is "no key" as before: the status comes from DHL's
+        mails, the parcel shows the quiet note, and no repair issue is raised for pages
+        that were never promised to answer.
+        """
+        try:
+            if number.startswith("JVGL"):
+                return await fetch_dhl_nl(self._session, number)
+            try:
+                return await fetch_dhl_de(number)
+            except NotFound:
+                return await fetch_dhl_nl(self._session, number)
+        except MissingCredentials:
+            raise
+        except (NotFound, CarrierUnavailable, ParseError) as err:
+            raise MissingCredentials(f"DHL public tracking: {err}") from err
 
     async def validate_key(self) -> bool:
         """True if the key is accepted (probe number answers 404 or 200)."""
