@@ -148,9 +148,19 @@ async def test_bot_protection_is_unavailable_not_unknown():
             with pytest.raises(CarrierUnavailable):
                 await DpdCarrier("at").fetch(NUMBER, None)
     with aioresponses() as m:
-        _mock_at(m, payload={"state": "failure"})
+        _mock_at(m, payload={"state": "error"})
         with pytest.raises(CarrierUnavailable):
             await DpdCarrier("at").fetch(NUMBER, None)
+
+
+async def test_failure_without_data_is_not_found_at_dpd_austria():
+    # mydpd.at answers {"state": "failure"} for a number it does not know (a Post parcel)
+    from custom_components.parcel_tracker.carriers.dpd_at import fetch_dpd_at
+
+    with aioresponses() as m:
+        _mock_at(m, payload={"state": "failure"})
+        with pytest.raises(NotFound):
+            await fetch_dpd_at(NUMBER)
 
 
 def test_country_reaches_the_carrier():
