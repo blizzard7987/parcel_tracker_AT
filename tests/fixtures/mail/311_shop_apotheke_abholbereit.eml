@@ -1,0 +1,14 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: Shop Apotheke <noreply@delivery.shop-apotheke.at>
+To: max@example.org
+Subject: Ihr Paket von Shop Apotheke kann jetzt abgeholt werden
+Date: Wed, 16 Sep 2026 10:36:00 +0200
+Message-ID: <fixture-311@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Hallo Max,</p><p>Ihr Paket wird bis Mittwoch, 30. September gelagert. <a href="https://www.post.at/sv/sendungsdetails?snr=1099999999999992212305">Abholort anzeigen</a></p>
+</body></html>

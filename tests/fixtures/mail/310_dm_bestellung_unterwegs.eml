@@ -1,0 +1,17 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: dm-drogerie markt <info@shop.dm.at>
+To: max@example.org
+Subject: Ihre dm Bestellung ist unterwegs
+Date: Mon, 05 Oct 2026 09:00:00 +0200
+Message-ID: <fixture-310@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Hallo Max Mustermann,</p><p>Ihre Bestellung ist unterwegs. Den Status Ihrer Sendung finden Sie jederzeit im Mein dm Konto.</p>
+<p>Ihre Bestellung im Überblick - Paket: 1099999999999990212301</p><p>Artikel Windeln, Monatsbox 1</p>
+<p>Ihre Bestellung im Überblick - Paket: 1099999999999991212308</p><p>Artikel Feuchttücher 1</p>
+<p>Lieferadresse: Max Mustermann, Musterstraße 1, 9999 Musterstadt</p>
+</body></html>

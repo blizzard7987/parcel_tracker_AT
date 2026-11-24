@@ -171,6 +171,22 @@ _SSCC_RETURN = re.compile(
 
 DpdMode = Literal["labelled", "any"] | None
 
+# Paket Tracker AT: Österreichische Post. Its numbers (22 or 24 digits, UPU S10 ending "AT")
+# count in a link to Post's tracking ("post.at/s/sendungsdetails?snr=…", also a shop's
+# "courier=austrian-post&trackingNo=…"), behind a parcel-number label, or, for S10, anywhere.
+_POST_AT_NUMBER = r"(\d{24}|\d{22}|[A-Z]{2}\d{9}AT)"
+_POST_AT_LINK = re.compile(
+    rf"(?:post\.at/s[v]?/sendungsdetails\?snr=|courier=austrian-post&(?:amp;)?trackingNo=)"
+    rf"{_POST_AT_NUMBER}(?![\dA-Z])",
+    re.IGNORECASE,
+)
+_POST_AT_LABELLED = re.compile(
+    r"(?<!\w)(?:Paket|Paketnummer|Sendungsnummer|Sendungs-Nr\.?|Tracking[\s-]*Nummer|"
+    r"Trackingnummer|Trackingnr\.?|Tracking\s+number)\s*:?\s*(\d{24}|\d{22})(?!\d)",
+    re.IGNORECASE,
+)
+_POST_AT_S10 = re.compile(r"(?<![A-Za-z0-9])([A-Z]{2}\d{9}AT)(?![A-Za-z0-9])")
+
 
 def carrier_for(number: str) -> str | None:
     """Carrier of a number that is unambiguous on its own (DPD needs context)."""
@@ -210,6 +226,12 @@ def find_numbers(text: str, dpd: DpdMode = None) -> list[tuple[str, str]]:
         if sscc_valid(m.group(1))
         and not _SSCC_RETURN.search(text, max(m.start() - 30, 0), m.start())
     ]
+    for pattern in (_POST_AT_LINK, _POST_AT_LABELLED, _POST_AT_S10):
+        found += [
+            (m.start(1), "post_at", m.group(1))
+            for m in pattern.finditer(text)
+            if not _SSCC_RETURN.search(text, max(m.start() - 30, 0), m.start())
+        ]
     if dpd is not None:
         pattern = _DPD if dpd == "any" else _DPD_LABELLED
         found += [(m.start(1), "dpd", m.group(1)) for m in pattern.finditer(text)]

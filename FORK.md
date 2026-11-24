@@ -15,7 +15,7 @@ Fork von [SoerenKaiser99/parcel_tracker](https://github.com/SoerenKaiser99/parce
 | E0 | Fork-Identität: Name „Paket Tracker AT“, HACS-Installation direkt aus dem Repository (ohne Release-ZIP), Hinweise auf das Original | erledigt |
 | E1 | Mail-Import „Hauptpostfach, nur lesen“: Ordner lesend öffnen, nichts markieren, nichts verschieben; Auswahl über Gmail-Suche bzw. Datum und Absender | erledigt |
 | E2 | Österreichische Post: Live-Abfrage per Sendungsnummer, Post-Mails, Amazon-Pakete über die Post zuordnen | erledigt |
-| E3 | DPD Österreich live, österreichische Shop-Mails | offen |
+| E3 | DPD Österreich live, österreichische Shop-Mails | erledigt |
 | E4 | Optional: Gmail per OAuth statt App-Passwort | offen |
 
 ## Hauptpostfach nur lesen (E1)
@@ -33,6 +33,12 @@ Einschalten unter Einstellungen → Geräte & Dienste → Paket Tracker → Konf
 - **Nummern:** 22 oder 24 Ziffern sowie internationale Nummern auf `…AT` werden automatisch der Post zugeordnet. In der Karte und im Dienst `add_parcel` ist „Österreichische Post“ (`post_at`) wählbar.
 - **Post-Mails** (`mail/post_at.py`): „in Verteilung“ (mit Zustelltag), „in Zustellung“ (heute), „So stellen wir … zu“ und „Ihr Paket ist da!“ (Abholstation, Abholfrist, Abholcode nur mit eingeschaltetem Zustellcode). Name, Kundennummer und Gewicht werden nicht gelesen. Andere Mails von post.at (Belege, Rechnungen, Paketmarken) werden ignoriert.
 - **Amazon über die Post:** „Ihre AMAZON-Sendung …“ wird der offenen Amazon-Bestellung mit passendem Tag zugeordnet. Die Bestellung übernimmt die Post-Nummer und wird ab dann live abgefragt.
+
+## DPD Österreich und österreichische Shops (E3)
+
+- **DPD live für Österreich:** my.dpd.de leitet österreichische Pakete nur an mydpd.at weiter. Der Fork fragt dann die öffentliche Paketsuche von mydpd.at ab (`carriers/dpd_at.py`), ohne Konto und nur mit der Paketnummer. Mit Land „Österreich“ wird mydpd.at zuerst gefragt. Die Seite hat einen Bot-Schutz; wird die Abfrage abgewiesen, gilt DPD als „nicht erreichbar“ und der Status kommt weiter aus den DPD-Mails.
+- **Post-Nummern in jeder Mail:** Links zur Post-Sendungsverfolgung, Nummern hinter „Paket:“/„Sendungsnummer“ und internationale Nummern auf `…AT`.
+- **Shop-Mails** (`mail/at_shops.py`): dm, Shop Apotheke, apotheke.at, ABOUT YOU, asambeauty, Pharmeo, apol. Nummer (Post, DPD, DHL), Shopname als Paketname, Status aus dem Betreff. Retouren werden ignoriert.
 
 ## Upstream einspielen
 

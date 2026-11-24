@@ -1,0 +1,14 @@
+X-Fixture: Paket Tracker AT; built after a real shop mail; numbers, names, order numbers
+ and addresses replaced by invented values
+From: ABOUT YOU <noreply@aboutyou.at>
+To: max@example.org
+Subject: =?utf-8?q?ABOUT_YOU_=5BAT=5D-_Retourenbest=C3=A4tigung=3A_ayat-200-999999999?=
+Date: Mon, 26 Oct 2026 12:00:00 +0100
+Message-ID: <fixture-316@example.org>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body>
+<p>Deine Retoure ist bei uns eingegangen. Sendungsnummer: 09999999999923</p>
+</body></html>
