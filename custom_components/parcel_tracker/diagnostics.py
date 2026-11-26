@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 
+from .carriers.dpd_at import PROBE as DPD_AT_PROBE
 from .const import (
     CONF_COUNTRY,
     CONF_DHL_API_KEY,
@@ -253,6 +254,7 @@ async def async_get_config_entry_diagnostics(
                 "mail": coordinator.mailbox is not None,
             },
             "dhl_calls_today": state["dhl_calls_today"],
+            "dpd_at_probe": dict(DPD_AT_PROBE),
         },
         "ups_budget": {
             "month": budget.month,

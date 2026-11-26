@@ -171,3 +171,33 @@ def test_country_reaches_the_carrier():
     import asyncio
 
     assert asyncio.run(run()) == "at"
+
+
+async def test_honest_request_first_without_start_page_or_browser_headers():
+    from custom_components.parcel_tracker.carriers import dpd_at
+
+    before = dict(dpd_at.PROBE)
+    with aioresponses() as m:
+        m.post(DPD_AT_SEARCH_URL, payload={"state": "success", "data": [DELIVERED]})
+        r = await dpd_at.fetch_dpd_at(NUMBER)
+        [call] = m.requests[("POST", aiohttp.client.URL(DPD_AT_SEARCH_URL))]
+        assert ("GET", aiohttp.client.URL(f"{DPD_AT_BASE}/")) not in m.requests
+    assert r.status is ParcelStatus.DELIVERED
+    headers = call.kwargs["headers"]
+    assert headers["User-Agent"].startswith("ParcelTracker")
+    assert "Origin" not in headers and "X-Requested-With" not in headers
+    assert dpd_at.PROBE["honest_ok"] == before["honest_ok"] + 1
+
+
+async def test_refused_honest_request_falls_back_and_is_counted():
+    from custom_components.parcel_tracker.carriers import dpd_at
+
+    before = dict(dpd_at.PROBE)
+    with aioresponses() as m:
+        m.post(DPD_AT_SEARCH_URL, status=403, body="<html>blocked</html>")
+        _mock_at(m, payload={"state": "success", "data": [DELIVERED]})
+        r = await dpd_at.fetch_dpd_at(NUMBER)
+    assert r.status is ParcelStatus.DELIVERED
+    assert dpd_at.PROBE["honest_refused"] == before["honest_refused"] + 1
+    assert dpd_at.PROBE["fallback_ok"] == before["fallback_ok"] + 1
+    assert dpd_at.PROBE["last_refusal"] == "HTTP 403"
