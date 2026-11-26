@@ -260,7 +260,7 @@ def _route(msg: EmailMessage, read_otp: bool, plain_names: bool) -> MailResult:
     if at_shop(address):
         updates, ignored = parse_at_shop_mail(msg)
         return MailResult(updates=updates, ignored=ignored)
-    # Paket Tracker AT: Österreichische Post. Its other mails (receipts, invoices, labels,
+    # Österreichische Post. Its other mails (receipts, invoices, labels,
     # shop orders) never go to the generic parser: they would make parcels of numbers.
     if domain == POST_AT_DOMAIN or domain.endswith(f".{POST_AT_DOMAIN}"):
         if not is_post_at_parcel_mail(subj):

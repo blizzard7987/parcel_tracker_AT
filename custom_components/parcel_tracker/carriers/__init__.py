@@ -26,7 +26,6 @@ def build_carriers(
         "hermes": HermesCarrier(session),
         "hes": HesCarrier(session),
         "gls": GlsCarrier(session, country),
-        # Paket Tracker AT
         "post_at": PostAtCarrier(session),
         "fedex": NoLiveTracking("fedex", "FedEx"),
     }
