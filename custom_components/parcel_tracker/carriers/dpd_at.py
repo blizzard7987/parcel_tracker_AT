@@ -144,8 +144,56 @@ def parse_dpd_at(parcel: dict[str, Any]) -> TrackingResult:
     )
 
 
-async def fetch_dpd_at(number: str) -> TrackingResult:
-    """One lookup in its own session (start page first for the portal's cookies)."""
+# Paket Tracker AT, test (2026-11-26): does mydpd.at answer a plain, honest request - our
+# own User-Agent, no start page, no browser headers? Tried first; only a refusal falls back
+# to the browser-like way below. The counts go into the diagnostics ("dpd_at_probe"): if
+# the honest way works, the fallback goes and the honest way is offered to the original.
+_HONEST_HEADERS = {
+    "User-Agent": "ParcelTracker (Home Assistant integration)",
+    "Content-Type": "application/json; charset=utf-8",
+    "Accept": "application/json",
+}
+PROBE: dict[str, Any] = {
+    "honest_ok": 0,
+    "honest_refused": 0,
+    "fallback_ok": 0,
+    "last_refusal": None,
+    "last_honest_at": None,
+}
+
+
+def _answer(body: Any) -> bool:
+    """A well-formed search answer (parcel found or not)."""
+    return isinstance(body, dict) and body.get("state") in ("success", "failure")
+
+
+async def _honest_search(number: str) -> Any:
+    """The search as a plain client; None if mydpd.at refuses it."""
+    PROBE["last_honest_at"] = datetime.now(VIENNA).isoformat(timespec="seconds")
+    try:
+        async with aiohttp.ClientSession(timeout=_TIMEOUT) as session:
+            async with session.post(
+                DPD_AT_SEARCH_URL, json=[number], headers=_HONEST_HEADERS
+            ) as resp:
+                if resp.status != 200:
+                    PROBE["last_refusal"] = f"HTTP {resp.status}"
+                    return None
+                try:
+                    body = await resp.json(content_type=None)
+                except ValueError:
+                    PROBE["last_refusal"] = "no JSON (page instead)"
+                    return None
+    except (TimeoutError, aiohttp.ClientError) as err:
+        PROBE["last_refusal"] = type(err).__name__
+        return None
+    if not _answer(body):
+        PROBE["last_refusal"] = "unexpected answer"
+        return None
+    return body
+
+
+async def _browser_search(number: str) -> Any:
+    """The search with the start page first for the portal's cookies (the old way)."""
     try:
         async with aiohttp.ClientSession(
             cookie_jar=aiohttp.CookieJar(), headers={"User-Agent": _UA}, timeout=_TIMEOUT
@@ -158,11 +206,23 @@ async def fetch_dpd_at(number: str) -> TrackingResult:
                 if resp.status != 200:
                     raise CarrierUnavailable(f"DPD AT HTTP {resp.status}")
                 try:
-                    body = await resp.json(content_type=None)
+                    return await resp.json(content_type=None)
                 except ValueError as err:
                     raise CarrierUnavailable("DPD AT answered no JSON (bot protection?)") from err
     except (TimeoutError, aiohttp.ClientError) as err:
         raise CarrierUnavailable(str(err)) from err
+
+
+async def fetch_dpd_at(number: str) -> TrackingResult:
+    """One lookup: the honest request first, the browser-like way only if it is refused."""
+    body = await _honest_search(number)
+    if body is not None:
+        PROBE["honest_ok"] += 1
+    else:
+        PROBE["honest_refused"] += 1
+        body = await _browser_search(number)
+        if _answer(body):
+            PROBE["fallback_ok"] += 1
     if isinstance(body, dict) and body.get("state") == "failure" and not body.get("data"):
         # A well-formed answer without the parcel: DPD Austria does not know the number
         # (seen live 2026-11-24 for a parcel of Österreichische Post with 14 digits).

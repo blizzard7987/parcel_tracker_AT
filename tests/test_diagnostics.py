@@ -493,7 +493,9 @@ async def test_diagnostics_free_text_in_code_fields_is_not_passed_on(hass, hass_
 async def test_diagnostics_carriers_budget_and_17track(hass, hass_storage, freezer):
     entry = await _setup(hass, hass_storage, freezer)
     result = await async_get_config_entry_diagnostics(hass, entry)
-    assert result["carriers"] == {
+    carriers = dict(result["carriers"])
+    assert set(carriers.pop("dpd_at_probe")) >= {"honest_ok", "honest_refused", "fallback_ok"}
+    assert carriers == {
         "active": ["dhl", "dpd", "hermes", "hes", "gls", "post_at", "fedex", "ups"],
         "credentials": {"dhl": True, "ups": True, "track17": True, "mail": True},
         "dhl_calls_today": 0,
