@@ -1,4 +1,4 @@
-"""Österreichische Post notification mails (no Home Assistant imports). Paket Tracker AT.
+"""Österreichische Post notification mails (no Home Assistant imports).
 
 meinesendung@post.at (older: meinepost@post.at) writes:
 

@@ -353,7 +353,6 @@ _CARRIER_WORDS = (
     ("hermes", "hermes"),
     ("dhl", "dhl"),
     ("deutsche post", "dhl"),
-    # Paket Tracker AT
     ("österreichische post", "post_at"),
     ("dpd", "dpd"),
     ("gls", "gls"),
