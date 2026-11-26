@@ -76,7 +76,7 @@ HACS lädt die Integration nur herunter; ohne Schritt 2 passiert nichts. Install
 
 Paket Tracker ist eine öffentliche Beta. Welche Funktionen noch eine Bestätigung aus dem Alltag brauchen und welche Beispielmails fehlen, steht unter [Wie ihr helfen könnt](https://soerenkaiser99.github.io/parcel_tracker/mithelfen/); häufige Fragen beantwortet die [Hilfe](https://soerenkaiser99.github.io/parcel_tracker/hilfe/).
 
-Der Paket Tracker ist kostenlos und bleibt es. Wer Danke sagen möchte, kann mir [einen Kaffee spendieren](https://buymeacoffee.com/soerenkaiser99) ☕ – genauso viel helfen ein Stern auf GitHub, eine Rückmeldung oder eine Beispielmail.
+Der Paket Tracker ist kostenlos und bleibt es. Wer Danke sagen möchte: für die Österreich-Teile dieses Forks [einen Kaffee an Florian](https://buymeacoffee.com/blizzard7987) ☕, für die Integration selbst [einen Kaffee an Sören](https://buymeacoffee.com/soerenkaiser99) ☕ – genauso viel helfen ein Stern auf GitHub, eine Rückmeldung oder eine Beispielmail.
 
 ## Fehler melden
 
