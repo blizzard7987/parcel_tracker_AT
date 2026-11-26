@@ -201,3 +201,13 @@ async def test_refused_honest_request_falls_back_and_is_counted():
     assert dpd_at.PROBE["honest_refused"] == before["honest_refused"] + 1
     assert dpd_at.PROBE["fallback_ok"] == before["fallback_ok"] + 1
     assert dpd_at.PROBE["last_refusal"] == "HTTP 403"
+
+
+def test_collected_from_the_pickup_station_is_delivered():
+    result = parse_dpd_at(
+        _parcel(
+            _entry("20261125121300", 6, "IN_PICKUP_STATION", "In der Pickup Paketstation"),
+            _entry("20261125145400", 7, "PICKUP_STATION_PICKED", "Paket durch Empfänger abgeholt"),
+        )
+    )
+    assert result.status is ParcelStatus.DELIVERED

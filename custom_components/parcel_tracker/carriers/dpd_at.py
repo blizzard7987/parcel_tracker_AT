@@ -15,6 +15,7 @@ Of the answer only the lifecycle is read. Sender and recipient fields are never 
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -69,10 +70,17 @@ def _stamp(value: Any) -> datetime | None:
         return None
 
 
+# "Paket durch Empfänger abgeholt": collected from a Pickup shop or station - delivered,
+# although the state name still carries PICKUP.
+_COLLECTED = re.compile(r"(?:durch|vom|von)\s+(?:dem\s+)?Empf[aä]nger\s+abgeholt", re.I)
+
+
 def _entry_status(state: dict[str, Any]) -> ParcelStatus | None:
     name = str(state.get("name") or "").upper()
     if name in _STATUS:
         return _STATUS[name]
+    if _COLLECTED.search(str(state.get("text") or "")) or "COLLECTED" in name:
+        return ParcelStatus.DELIVERED
     if "SHOP" in name or "PICKUP" in name:
         return ParcelStatus.AWAITING_PICKUP
     value = state.get("value")
